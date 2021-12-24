@@ -339,9 +339,9 @@ index 6d092d78e0cbc..8ec7cf9bdc02c 100644
 --- a/drivers/net/usb/lan78xx.c
 +++ b/drivers/net/usb/lan78xx.c
 @@ -2663,7 +2663,7 @@ static void lan78xx_terminate_urbs(struct lan78xx_net *dev)
- 	while (!skb_queue_empty(&dev->rxq) &&
- 	       !skb_queue_empty(&dev->txq) &&
- 	       !skb_queue_empty(&dev->done)) {
+ 	/* maybe wait for deletions to finish. */
+ 	while (!skb_queue_empty(&dev->rxq) ||
+ 	       !skb_queue_empty(&dev->txq)) {
 -		schedule_timeout(msecs_to_jiffies(UNLINK_TIMEOUT_MS));
 +		schedule_msec_hrtimeout((UNLINK_TIMEOUT_MS));
  		set_current_state(TASK_UNINTERRUPTIBLE);

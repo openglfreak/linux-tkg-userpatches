@@ -17,12 +17,14 @@ diff --git a/Makefile b/Makefile
 index 9b947e501..9c762c67f 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -1020,9 +1020,6 @@ KBUILD_CFLAGS	+= -fno-strict-overflow
+@@ -1020,11 +1020,6 @@ KBUILD_CFLAGS	+= -fno-strict-overflow
  # Make sure -fstack-check isn't enabled (like gentoo apparently did)
  KBUILD_CFLAGS  += -fno-stack-check
  
 -# conserve stack if available
--KBUILD_CFLAGS   += $(call cc-option,-fconserve-stack)
+-ifdef CONFIG_CC_IS_GCC
+-KBUILD_CFLAGS   += -fconserve-stack
+-endif
 -
  # Prohibit date/time macros, which would make the build non-deterministic
  KBUILD_CFLAGS   += -Werror=date-time

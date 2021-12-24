@@ -1,7 +1,7 @@
-From c2ceccf5e4d8376ce04b475e66a95ddcc089a90c Mon Sep 17 00:00:00 2001
+From fefa9d7df73efeb6c77541c470b9f7bb07269cf0 Mon Sep 17 00:00:00 2001
 From: Nick Terrell <terrelln@fb.com>
-Date: Thu, 29 Apr 2021 18:31:54 -0700
-Subject: [PATCH 1/3] lib: zstd: Add kernel-specific API
+Date: Fri, 11 Sep 2020 16:49:00 -0700
+Subject: [PATCH 01/14] lib: zstd: Add kernel-specific API
 
 This patch:
 - Moves `include/linux/zstd.h` -> `include/linux/zstd_lib.h`
@@ -38,7 +38,7 @@ Signed-off-by: Nick Terrell <terrelln@fb.com>
  create mode 100644 include/linux/zstd_lib.h
 
 diff --git a/crypto/zstd.c b/crypto/zstd.c
-index 1a3309f066f7e..154a969c83a82 100644
+index 1a3309f06..154a969c8 100644
 --- a/crypto/zstd.c
 +++ b/crypto/zstd.c
 @@ -18,22 +18,22 @@
@@ -123,7 +123,7 @@ index 1a3309f066f7e..154a969c83a82 100644
  	*dlen = out_len;
  	return 0;
 diff --git a/fs/btrfs/zstd.c b/fs/btrfs/zstd.c
-index 3e26b466476ab..6d984a832d0fa 100644
+index f06b68040..fc42dd0ba 100644
 --- a/fs/btrfs/zstd.c
 +++ b/fs/btrfs/zstd.c
 @@ -28,10 +28,10 @@
@@ -228,9 +228,9 @@ index 3e26b466476ab..6d984a832d0fa 100644
  			ret = -EIO;
  			goto out;
  		}
-@@ -550,17 +550,17 @@ int zstd_decompress_bio(struct list_head *ws, struct compressed_bio *cb)
- 	u64 disk_start = cb->start;
- 	struct bio *orig_bio = cb->orig_bio;
+@@ -548,17 +548,17 @@ int zstd_decompress_bio(struct list_head *ws, struct compressed_bio *cb)
+ 	struct workspace *workspace = list_entry(ws, struct workspace, list);
+ 	struct page **pages_in = cb->compressed_pages;
  	size_t srclen = cb->compressed_len;
 -	ZSTD_DStream *stream;
 +	zstd_dstream *stream;
@@ -249,7 +249,7 @@ index 3e26b466476ab..6d984a832d0fa 100644
  		ret = -EIO;
  		goto done;
  	}
-@@ -576,11 +576,11 @@ int zstd_decompress_bio(struct list_head *ws, struct compressed_bio *cb)
+@@ -574,11 +574,11 @@ int zstd_decompress_bio(struct list_head *ws, struct compressed_bio *cb)
  	while (1) {
  		size_t ret2;
  
@@ -265,7 +265,7 @@ index 3e26b466476ab..6d984a832d0fa 100644
  			ret = -EIO;
  			goto done;
  		}
-@@ -626,16 +626,16 @@ int zstd_decompress(struct list_head *ws, unsigned char *data_in,
+@@ -624,16 +624,16 @@ int zstd_decompress(struct list_head *ws, unsigned char *data_in,
  		size_t destlen)
  {
  	struct workspace *workspace = list_entry(ws, struct workspace, list);
@@ -285,7 +285,7 @@ index 3e26b466476ab..6d984a832d0fa 100644
  		ret = -EIO;
  		goto finish;
  	}
-@@ -659,15 +659,15 @@ int zstd_decompress(struct list_head *ws, unsigned char *data_in,
+@@ -657,15 +657,15 @@ int zstd_decompress(struct list_head *ws, unsigned char *data_in,
  
  		/* Check if the frame is over and we still need more input */
  		if (ret2 == 0) {
@@ -307,10 +307,10 @@ index 3e26b466476ab..6d984a832d0fa 100644
  			goto finish;
  		}
 diff --git a/fs/f2fs/compress.c b/fs/f2fs/compress.c
-index 455561826c7dc..003c602b09576 100644
+index 9b663eaf4..1292aef29 100644
 --- a/fs/f2fs/compress.c
 +++ b/fs/f2fs/compress.c
-@@ -334,8 +334,8 @@ static const struct f2fs_compress_ops f2fs_lz4_ops = {
+@@ -335,8 +335,8 @@ static const struct f2fs_compress_ops f2fs_lz4_ops = {
  
  static int zstd_init_compress_ctx(struct compress_ctx *cc)
  {
@@ -321,7 +321,7 @@ index 455561826c7dc..003c602b09576 100644
  	void *workspace;
  	unsigned int workspace_size;
  	unsigned char level = F2FS_I(cc->inode)->i_compress_flag >>
-@@ -344,17 +344,17 @@ static int zstd_init_compress_ctx(struct compress_ctx *cc)
+@@ -345,17 +345,17 @@ static int zstd_init_compress_ctx(struct compress_ctx *cc)
  	if (!level)
  		level = F2FS_ZSTD_DEFAULT_CLEVEL;
  
@@ -343,7 +343,7 @@ index 455561826c7dc..003c602b09576 100644
  				KERN_ERR, F2FS_I_SB(cc->inode)->sb->s_id,
  				__func__);
  		kvfree(workspace);
-@@ -377,9 +377,9 @@ static void zstd_destroy_compress_ctx(struct compress_ctx *cc)
+@@ -378,9 +378,9 @@ static void zstd_destroy_compress_ctx(struct compress_ctx *cc)
  
  static int zstd_compress_pages(struct compress_ctx *cc)
  {
@@ -356,7 +356,7 @@ index 455561826c7dc..003c602b09576 100644
  	int src_size = cc->rlen;
  	int dst_size = src_size - PAGE_SIZE - COMPRESS_HEADER_SIZE;
  	int ret;
-@@ -392,19 +392,19 @@ static int zstd_compress_pages(struct compress_ctx *cc)
+@@ -393,19 +393,19 @@ static int zstd_compress_pages(struct compress_ctx *cc)
  	outbuf.dst = cc->cbuf->cdata;
  	outbuf.size = dst_size;
  
@@ -384,7 +384,7 @@ index 455561826c7dc..003c602b09576 100644
  		return -EIO;
  	}
  
-@@ -421,22 +421,22 @@ static int zstd_compress_pages(struct compress_ctx *cc)
+@@ -422,22 +422,22 @@ static int zstd_compress_pages(struct compress_ctx *cc)
  
  static int zstd_init_decompress_ctx(struct decompress_io_ctx *dic)
  {
@@ -411,7 +411,7 @@ index 455561826c7dc..003c602b09576 100644
  				KERN_ERR, F2FS_I_SB(dic->inode)->sb->s_id,
  				__func__);
  		kvfree(workspace);
-@@ -458,9 +458,9 @@ static void zstd_destroy_decompress_ctx(struct decompress_io_ctx *dic)
+@@ -459,9 +459,9 @@ static void zstd_destroy_decompress_ctx(struct decompress_io_ctx *dic)
  
  static int zstd_decompress_pages(struct decompress_io_ctx *dic)
  {
@@ -424,7 +424,7 @@ index 455561826c7dc..003c602b09576 100644
  	int ret;
  
  	inbuf.pos = 0;
-@@ -471,11 +471,11 @@ static int zstd_decompress_pages(struct decompress_io_ctx *dic)
+@@ -472,11 +472,11 @@ static int zstd_decompress_pages(struct decompress_io_ctx *dic)
  	outbuf.dst = dic->rbuf;
  	outbuf.size = dic->rlen;
  
@@ -441,10 +441,10 @@ index 455561826c7dc..003c602b09576 100644
  	}
  
 diff --git a/fs/f2fs/super.c b/fs/f2fs/super.c
-index 8fecd3050ccd4..8164ed1bcfe78 100644
+index dbe040b66..dc7a24656 100644
 --- a/fs/f2fs/super.c
 +++ b/fs/f2fs/super.c
-@@ -588,7 +588,7 @@ static int f2fs_set_zstd_level(struct f2fs_sb_info *sbi, const char *str)
+@@ -592,7 +592,7 @@ static int f2fs_set_zstd_level(struct f2fs_sb_info *sbi, const char *str)
  	if (kstrtouint(str + 1, 10, &level))
  		return -EINVAL;
  
@@ -454,7 +454,7 @@ index 8fecd3050ccd4..8164ed1bcfe78 100644
  		return -EINVAL;
  	}
 diff --git a/fs/pstore/platform.c b/fs/pstore/platform.c
-index b9614db48b1de..f243cb5e6a4fb 100644
+index b9614db48..f243cb5e6 100644
 --- a/fs/pstore/platform.c
 +++ b/fs/pstore/platform.c
 @@ -218,7 +218,7 @@ static int zbufsize_842(size_t size)
@@ -467,7 +467,7 @@ index b9614db48b1de..f243cb5e6a4fb 100644
  #endif
  
 diff --git a/fs/squashfs/zstd_wrapper.c b/fs/squashfs/zstd_wrapper.c
-index b7cb1faa652d5..6967c0aae8011 100644
+index 0015cf8b5..c40445dbf 100644
 --- a/fs/squashfs/zstd_wrapper.c
 +++ b/fs/squashfs/zstd_wrapper.c
 @@ -34,7 +34,7 @@ static void *zstd_init(struct squashfs_sb_info *msblk, void *buff)
@@ -518,7 +518,7 @@ index b7cb1faa652d5..6967c0aae8011 100644
  			break;
  		}
 diff --git a/include/linux/zstd.h b/include/linux/zstd.h
-index e87f78c9b19cc..9fbc7729b0a0d 100644
+index e87f78c9b..9fbc7729b 100644
 --- a/include/linux/zstd.h
 +++ b/include/linux/zstd.h
 @@ -1,138 +1,96 @@
@@ -1943,7 +1943,7 @@ index e87f78c9b19cc..9fbc7729b0a0d 100644
 +#endif  /* LINUX_ZSTD_H */
 diff --git a/include/linux/zstd_lib.h b/include/linux/zstd_lib.h
 new file mode 100644
-index 0000000000000..13151c34f725f
+index 000000000..13151c34f
 --- /dev/null
 +++ b/include/linux/zstd_lib.h
 @@ -0,0 +1,1157 @@
@@ -3105,7 +3105,7 @@ index 0000000000000..13151c34f725f
 +
 +#endif  /* ZSTD_H */
 diff --git a/lib/decompress_unzstd.c b/lib/decompress_unzstd.c
-index 6b629ab31c1eb..c076d6f050649 100644
+index 6b629ab31..c076d6f05 100644
 --- a/lib/decompress_unzstd.c
 +++ b/lib/decompress_unzstd.c
 @@ -91,11 +91,15 @@
@@ -3230,7 +3230,7 @@ index 6b629ab31c1eb..c076d6f050649 100644
  		if (err)
  			goto out;
 diff --git a/lib/zstd/compress.c b/lib/zstd/compress.c
-index b080264ed3adf..57aaa64306a01 100644
+index b080264ed..57aaa6430 100644
 --- a/lib/zstd/compress.c
 +++ b/lib/zstd/compress.c
 @@ -3443,43 +3443,92 @@ ZSTD_parameters ZSTD_getParams(int compressionLevel, unsigned long long srcSize,
@@ -3364,7 +3364,7 @@ index b080264ed3adf..57aaa64306a01 100644
  MODULE_LICENSE("Dual BSD/GPL");
  MODULE_DESCRIPTION("Zstd Compressor");
 diff --git a/lib/zstd/decompress.c b/lib/zstd/decompress.c
-index 66cd487a326a8..02e92c2cbf4fc 100644
+index 66cd487a3..02e92c2cb 100644
 --- a/lib/zstd/decompress.c
 +++ b/lib/zstd/decompress.c
 @@ -2490,42 +2490,82 @@ size_t ZSTD_decompressStream(ZSTD_DStream *zds, ZSTD_outBuffer *output, ZSTD_inB
@@ -3486,4 +3486,6 @@ index 66cd487a326a8..02e92c2cbf4fc 100644
  
  MODULE_LICENSE("Dual BSD/GPL");
  MODULE_DESCRIPTION("Zstd Decompressor");
+-- 
+2.33.1.711.g9d530dc002
 

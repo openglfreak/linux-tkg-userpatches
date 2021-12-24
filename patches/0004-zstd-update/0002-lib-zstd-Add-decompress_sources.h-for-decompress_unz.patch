@@ -1,7 +1,8 @@
-From 21f121cc9f0c5dd91d1d30caf26f579b64d10d66 Mon Sep 17 00:00:00 2001
+From 379d6628b573b7f0a2826761b71701010ef4baa3 Mon Sep 17 00:00:00 2001
 From: Nick Terrell <terrelln@fb.com>
-Date: Thu, 29 Apr 2021 18:31:55 -0700
-Subject: [PATCH 2/3] lib: zstd: Add decompress_sources.h for decompress_unzstd
+Date: Mon, 14 Sep 2020 12:54:12 -0700
+Subject: [PATCH 02/14] lib: zstd: Add decompress_sources.h for
+ decompress_unzstd
 
 Adds decompress_sources.h which includes every .c file necessary for
 zstd decompression. This is used in decompress_unzstd.c so the internal
@@ -18,7 +19,7 @@ Signed-off-by: Nick Terrell <terrelln@fb.com>
  create mode 100644 lib/zstd/decompress_sources.h
 
 diff --git a/lib/decompress_unzstd.c b/lib/decompress_unzstd.c
-index c076d6f050649..a512b99ae16a9 100644
+index c076d6f05..a512b99ae 100644
 --- a/lib/decompress_unzstd.c
 +++ b/lib/decompress_unzstd.c
 @@ -68,11 +68,7 @@
@@ -36,11 +37,11 @@ index c076d6f050649..a512b99ae16a9 100644
  #include <linux/decompress/mm.h>
 diff --git a/lib/zstd/decompress_sources.h b/lib/zstd/decompress_sources.h
 new file mode 100644
-index 0000000000000..d82cea4316f5a
+index 000000000..9ba367b44
 --- /dev/null
 +++ b/lib/zstd/decompress_sources.h
 @@ -0,0 +1,23 @@
-+/* SPDX-License-Identifier: GPL-2.0-only */
++/* SPDX-License-Identifier: GPL-2.0+ OR BSD-3-Clause */
 +/*
 + * Copyright (c) Facebook, Inc.
 + * All rights reserved.
@@ -63,4 +64,6 @@ index 0000000000000..d82cea4316f5a
 +#include "huf_decompress.c"
 +#include "zstd_common.c"
 +#include "decompress.c"
+-- 
+2.33.1.711.g9d530dc002
 
