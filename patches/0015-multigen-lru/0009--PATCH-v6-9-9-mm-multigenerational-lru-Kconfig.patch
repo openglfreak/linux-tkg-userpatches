@@ -1,0 +1,212 @@
+From patchwork Tue Jan  4 20:22:28 2022
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Yu Zhao <yuzhao@google.com>
+X-Patchwork-Id: 12703839
+Return-Path: <owner-linux-mm@kvack.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from kanga.kvack.org (kanga.kvack.org [205.233.56.17])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 295B0C433FE
+	for <linux-mm@archiver.kernel.org>; Tue,  4 Jan 2022 20:23:42 +0000 (UTC)
+Received: by kanga.kvack.org (Postfix)
+	id 8D3046B0085; Tue,  4 Jan 2022 15:23:35 -0500 (EST)
+Received: by kanga.kvack.org (Postfix, from userid 40)
+	id 85A5C6B0087; Tue,  4 Jan 2022 15:23:35 -0500 (EST)
+X-Delivered-To: int-list-linux-mm@kvack.org
+Received: by kanga.kvack.org (Postfix, from userid 63042)
+	id 6FC0F6B0088; Tue,  4 Jan 2022 15:23:35 -0500 (EST)
+X-Delivered-To: linux-mm@kvack.org
+Received: from forelay.hostedemail.com (smtprelay0244.hostedemail.com
+ [216.40.44.244])
+	by kanga.kvack.org (Postfix) with ESMTP id 584F56B0085
+	for <linux-mm@kvack.org>; Tue,  4 Jan 2022 15:23:35 -0500 (EST)
+Received: from smtpin19.hostedemail.com (10.5.19.251.rfc1918.com
+ [10.5.19.251])
+	by forelay02.hostedemail.com (Postfix) with ESMTP id 117DC95B0D
+	for <linux-mm@kvack.org>; Tue,  4 Jan 2022 20:23:35 +0000 (UTC)
+X-FDA: 78993729990.19.A77675B
+Received: from mail-io1-f74.google.com (mail-io1-f74.google.com
+ [209.85.166.74])
+	by imf25.hostedemail.com (Postfix) with ESMTP id F081AA0008
+	for <linux-mm@kvack.org>; Tue,  4 Jan 2022 20:23:16 +0000 (UTC)
+Received: by mail-io1-f74.google.com with SMTP id
+ m127-20020a6b3f85000000b005f045ba51f9so20770745ioa.4
+        for <linux-mm@kvack.org>; Tue, 04 Jan 2022 12:23:34 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20210112;
+        h=date:in-reply-to:message-id:mime-version:references:subject:from:to
+         :cc;
+        bh=3mcZXTFAVVKAScTp9T3FYR4LKZEXMUV/Knzjk0tHVBE=;
+        b=mCSkJPXwf5wHh/HtH5JZ+zUi3W3uwEIfDgmRUzHvNJepZwEhIS/LNb9n1UjALu6Szd
+         LW2tgMSnTS94ajbP0LuotYeROOEjgYIqL1r52Fu2ahDG5lg6pwzoRhy2smYNkegSkyCh
+         fxekftRQoLrHbGM7wBD6FLHByCTPJBiPTHg5NzOXkEp8FArYs2b/ajTU7WVFy14ke9FT
+         wVCe1XGRcC2oVFeMgkzm4EvQ8o3PjhPioXo3Im20qILTBCqmMzInC/LY06qm4KQ5/lUz
+         pqVasfgkpB0nb6Ec57SKzh/tKLoHnlE0A5BzuFT1bUxWh1TICakRWiay0NjrwCrWvetR
+         mEHg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112;
+        h=x-gm-message-state:date:in-reply-to:message-id:mime-version
+         :references:subject:from:to:cc;
+        bh=3mcZXTFAVVKAScTp9T3FYR4LKZEXMUV/Knzjk0tHVBE=;
+        b=cQuNB+Xcg3uD6EHB/Y89SEGND3RQQLr3zQ+j0dbbrecDEyfl6P93GfjdctMt772kBH
+         +gFhJNqYyyn0F5WGebQvPA9rEzuEzysX8v9wPGDRqSHPdiF5dTVte21yRFH8vm/Tossa
+         fmq/dJ/LEpSdcyTM5a5BsnuUpEvktdnwOKQTIdXCKBbVpufeT2SwMhhyPVpvPn2CA66G
+         NWoijr989Ls5+iXrofc9aCt5sDs8oPzibLxZaDI8iof9sqVOVzZke9nuKfoA22U0sfMM
+         lXMPz7glbmNTLSF7kVALQAPPVqaqQJ+1u79DIMMPrr4l4LiLxY1TNu0Dy3YxsabCgYSd
+         euOw==
+X-Gm-Message-State: AOAM533n1b3paG7du1P1W5r9xkcYDCFzhHrQZtIbP4A0UB7w0ha/5CMw
+	xtsi9MzPM2akAiQNWIB0FNVlm65vn/E=
+X-Google-Smtp-Source: 
+ ABdhPJyZPE5V4Ptt+nYa5Cps4VQsza0yacqlO/1013IgaXvoQvd8iavdrzdCI+Jz1MdsuYRS3ehUPNavaKw=
+X-Received: from yuzhao.bld.corp.google.com
+ ([2620:15c:183:200:6c8c:5506:7ca2:9dfd])
+ (user=yuzhao job=sendgmr) by 2002:a92:d849:: with SMTP id
+ h9mr24622336ilq.181.1641327813743;
+ Tue, 04 Jan 2022 12:23:33 -0800 (PST)
+Date: Tue,  4 Jan 2022 13:22:28 -0700
+In-Reply-To: <20220104202227.2903605-1-yuzhao@google.com>
+Message-Id: <20220104202227.2903605-10-yuzhao@google.com>
+Mime-Version: 1.0
+References: <20220104202227.2903605-1-yuzhao@google.com>
+X-Mailer: git-send-email 2.34.1.448.ga2b2bfdf31-goog
+Subject: [PATCH 9/9] [PATCH v6 9/9] mm: multigenerational lru: Kconfig
+From: Yu Zhao <yuzhao@google.com>
+To: Andrew Morton <akpm@linux-foundation.org>,
+	Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Andi Kleen <ak@linux.intel.com>,
+ Catalin Marinas <catalin.marinas@arm.com>,
+	Dave Hansen <dave.hansen@linux.intel.com>, Hillf Danton <hdanton@sina.com>,
+	Jens Axboe <axboe@kernel.dk>, Jesse Barnes <jsbarnes@google.com>,
+	Johannes Weiner <hannes@cmpxchg.org>, Jonathan Corbet <corbet@lwn.net>,
+	Matthew Wilcox <willy@infradead.org>, Mel Gorman <mgorman@suse.de>,
+	Michael Larabel <Michael@michaellarabel.com>,
+ Michal Hocko <mhocko@kernel.org>,
+	Rik van Riel <riel@surriel.com>, Vlastimil Babka <vbabka@suse.cz>,
+ Will Deacon <will@kernel.org>,
+	Ying Huang <ying.huang@intel.com>, linux-arm-kernel@lists.infradead.org,
+	linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org,
+	page-reclaim@google.com, x86@kernel.org, Yu Zhao <yuzhao@google.com>,
+	Konstantin Kharlamov <Hi-Angel@yandex.ru>
+X-Stat-Signature: od43tz43duhwbwg5hkhzi38r84guiy6w
+X-Rspamd-Server: rspam01
+X-Rspamd-Queue-Id: F081AA0008
+Authentication-Results: imf25.hostedemail.com;
+	dkim=pass header.d=google.com header.s=20210112 header.b=mCSkJPXw;
+	spf=pass (imf25.hostedemail.com: domain of
+ 3xazUYQYKCIY849rkyqyyqvo.mywvsx47-wwu5kmu.y1q@flex--yuzhao.bounces.google.com
+ designates 209.85.166.74 as permitted sender)
+ smtp.mailfrom=3xazUYQYKCIY849rkyqyyqvo.mywvsx47-wwu5kmu.y1q@flex--yuzhao.bounces.google.com;
+	dmarc=pass (policy=reject) header.from=google.com
+X-HE-Tag: 1641327796-106209
+X-Bogosity: Ham, tests=bogofilter, spamicity=0.000000, version=1.2.4
+Sender: owner-linux-mm@kvack.org
+Precedence: bulk
+X-Loop: owner-majordomo@kvack.org
+List-ID: <linux-mm.kvack.org>
+
+Add configuration options for the multigenerational lru.
+
+Signed-off-by: Yu Zhao <yuzhao@google.com>
+Tested-by: Konstantin Kharlamov <Hi-Angel@yandex.ru>
+---
+ Documentation/vm/multigen_lru.rst | 18 ++++++++++++
+ mm/Kconfig                        | 48 +++++++++++++++++++++++++++++++
+ 2 files changed, 66 insertions(+)
+
+diff --git a/Documentation/vm/multigen_lru.rst b/Documentation/vm/multigen_lru.rst
+index 6f9e0181348b..a54c5637c455 100644
+--- a/Documentation/vm/multigen_lru.rst
++++ b/Documentation/vm/multigen_lru.rst
+@@ -6,6 +6,13 @@ Multigenerational LRU
+ 
+ Quick start
+ ===========
++Build configurations
++--------------------
++:Required: Set ``CONFIG_LRU_GEN=y``.
++
++:Optional: Set ``CONFIG_LRU_GEN_ENABLED=y`` to enable this feature by
++ default.
++
+ Runtime configurations
+ ----------------------
+ :Required: Write ``1`` to ``/sys/kernel/mm/lru_gen/enable`` if the
+@@ -25,6 +32,17 @@ Personal computers
+ 
+ Data centers
+ ------------
++:Optional: Change ``CONFIG_NR_LRU_GENS`` to a larger value to support
++ more generations for ``Working set estimation`` and
++ ``Proactive reclaim``.
++
++:Optional: Change ``CONFIG_TIERS_PER_GEN`` to a larger value to
++ support more tiers, which generally provide better protection for
++ page cache when under heavy buffered I/O workloads.
++
++:Optional: Set ``CONFIG_LRU_GEN_STATS=y`` to enable full stats for
++ debugging. See ``Debugfs interface``.
++
+ :Debugfs interface: ``/sys/kernel/debug/lru_gen`` has the following
+  format:
+  ::
+diff --git a/mm/Kconfig b/mm/Kconfig
+index 356f4f2c779e..8a33605917f5 100644
+--- a/mm/Kconfig
++++ b/mm/Kconfig
+@@ -900,6 +900,54 @@ config IO_MAPPING
+ config SECRETMEM
+ 	def_bool ARCH_HAS_SET_DIRECT_MAP && !EMBEDDED
+ 
++# multigenerational lru {
++config LRU_GEN
++	bool "Multigenerational LRU"
++	depends on MMU
++	# the following options can use up the spare bits in page flags
++	depends on !MAXSMP && (64BIT || !SPARSEMEM || SPARSEMEM_VMEMMAP)
++	help
++	  A high performance LRU implementation for memory overcommit. See
++	  Documentation/vm/multigen_lru.rst for details.
++
++config LRU_GEN_ENABLED
++	bool "Enable by default"
++	depends on LRU_GEN
++	help
++	  This option enables the multigenerational lru by default.
++
++config NR_LRU_GENS
++	int "Max number of generations"
++	depends on LRU_GEN
++	range 4 31
++	default 4
++	help
++	  This option uses order_base_2(N+1) bits in page flags.
++
++	  Do not configure more generations than you plan to use. They have a
++	  per-memcg and per-node memory overhead.
++
++config TIERS_PER_GEN
++	int "Number of tiers per generation"
++	depends on LRU_GEN
++	range 2 5
++	default 4
++	help
++	  This option uses N-2 bits in page flags.
++
++	  Larger values generally provide better protection for page cache when
++	  under heavy buffered I/O workloads.
++
++config LRU_GEN_STATS
++	bool "Full stats for debugging"
++	depends on LRU_GEN
++	help
++	  This option keeps historical stats for evicted generations.
++
++	  Do not enable full stats unless you plan to look at them. They have a
++	  per-memcg and per-node memory overhead.
++# }
++
+ source "mm/damon/Kconfig"
+ 
+ endmenu

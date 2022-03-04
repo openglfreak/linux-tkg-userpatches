@@ -1,0 +1,137 @@
+From patchwork Fri Jan 28 13:09:55 2022
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Michel Lespinasse <michel@lespinasse.org>
+X-Patchwork-Id: 12728520
+Return-Path: <owner-linux-mm@kvack.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from kanga.kvack.org (kanga.kvack.org [205.233.56.17])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id B5EAEC433EF
+	for <linux-mm@archiver.kernel.org>; Fri, 28 Jan 2022 13:10:49 +0000 (UTC)
+Received: by kanga.kvack.org (Postfix)
+	id 63FA16B0095; Fri, 28 Jan 2022 08:10:14 -0500 (EST)
+Received: by kanga.kvack.org (Postfix, from userid 40)
+	id 274946B0099; Fri, 28 Jan 2022 08:10:14 -0500 (EST)
+X-Delivered-To: int-list-linux-mm@kvack.org
+Received: by kanga.kvack.org (Postfix, from userid 63042)
+	id AAA366B008C; Fri, 28 Jan 2022 08:10:13 -0500 (EST)
+X-Delivered-To: linux-mm@kvack.org
+Received: from forelay.hostedemail.com (smtprelay0084.hostedemail.com
+ [216.40.44.84])
+	by kanga.kvack.org (Postfix) with ESMTP id BA21E6B0092
+	for <linux-mm@kvack.org>; Fri, 28 Jan 2022 08:10:12 -0500 (EST)
+Received: from smtpin30.hostedemail.com (10.5.19.251.rfc1918.com
+ [10.5.19.251])
+	by forelay05.hostedemail.com (Postfix) with ESMTP id 7DC45181AC1E9
+	for <linux-mm@kvack.org>; Fri, 28 Jan 2022 13:10:12 +0000 (UTC)
+X-FDA: 79079729064.30.131058C
+Received: from server.lespinasse.org (server.lespinasse.org [63.205.204.226])
+	by imf03.hostedemail.com (Postfix) with ESMTP id 14C4520012
+	for <linux-mm@kvack.org>; Fri, 28 Jan 2022 13:10:11 +0000 (UTC)
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed;
+ d=lespinasse.org; i=@lespinasse.org; q=dns/txt; s=srv-52-ed;
+ t=1643375407; h=from : to : cc : subject : date : message-id :
+ in-reply-to : references : mime-version : content-transfer-encoding :
+ from; bh=brYV8LPA4M9MTtgPlp3UWTnacdv4IgtI3z+1Ewrumi8=;
+ b=I1DZbEmzQI4BcXWoERJUPqVuo+xoDE/u5gIe/livDsttlyUfT+MZsR0eXQlVWW88IXojZ
+ 0jaTameOtDQD5k0Cw==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=lespinasse.org;
+ i=@lespinasse.org; q=dns/txt; s=srv-52-rsa; t=1643375407; h=from : to
+ : cc : subject : date : message-id : in-reply-to : references :
+ mime-version : content-transfer-encoding : from;
+ bh=brYV8LPA4M9MTtgPlp3UWTnacdv4IgtI3z+1Ewrumi8=;
+ b=BnwIWxwakg1LSUdfMDZOXM07NSkkaRmm7gkd+wArC4muOcJ34MoFFiQ8zPm2Gv9Fvzeb6
+ Uvld4y0CFz/xgMOWzzPdrQS8SkI/FRPZS+avWFDq9lAW4LHsL1zFSMRRoDILiO22d27+8l4
+ h4wYnNj/8p/IH1qHJ2oEOMNuJpsAFjSLzHMu2eeXkTUpGHu3yjRJnPqUtFs0XGwkiuMcG/H
+ voXrhVBC9PZEQuTti4ut+rreXnIDxCC/XYgPL3+TiU757qOBPUm39Ch+wXPw/DG0yIxAOTy
+ 35hiWPkK/9hDr8NZ6eENLlEC6XtGLCsYgX477+xRrPBYMdb2h5hkkByDflOA==
+Received: from zeus.lespinasse.org (zeus.lespinasse.org [10.0.0.150])
+	by server.lespinasse.org (Postfix) with ESMTPS id 29450160AAB;
+	Fri, 28 Jan 2022 05:10:07 -0800 (PST)
+Received: by zeus.lespinasse.org (Postfix, from userid 1000)
+	id 0E8D620132; Fri, 28 Jan 2022 05:10:07 -0800 (PST)
+From: Michel Lespinasse <michel@lespinasse.org>
+To: Linux-MM <linux-mm@kvack.org>,
+	linux-kernel@vger.kernel.org,
+	Andrew Morton <akpm@linux-foundation.org>
+Cc: kernel-team@fb.com,
+	Laurent Dufour <ldufour@linux.ibm.com>,
+	Jerome Glisse <jglisse@google.com>,
+	Peter Zijlstra <peterz@infradead.org>,
+	Michal Hocko <mhocko@suse.com>,
+	Vlastimil Babka <vbabka@suse.cz>,
+	Davidlohr Bueso <dave@stgolabs.net>,
+	Matthew Wilcox <willy@infradead.org>,
+	Liam Howlett <liam.howlett@oracle.com>,
+	Rik van Riel <riel@surriel.com>,
+	Paul McKenney <paulmck@kernel.org>,
+	Song Liu <songliubraving@fb.com>,
+	Suren Baghdasaryan <surenb@google.com>,
+	Minchan Kim <minchan@google.com>,
+	Joel Fernandes <joelaf@google.com>,
+	David Rientjes <rientjes@google.com>,
+	Axel Rasmussen <axelrasmussen@google.com>,
+	Andy Lutomirski <luto@kernel.org>,
+	Michel Lespinasse <michel@lespinasse.org>
+Subject: [PATCH 24/35] [PATCH v2 24/35] mm: write lock mmu_notifier_lock when registering
+ mmu notifiers
+Date: Fri, 28 Jan 2022 05:09:55 -0800
+Message-Id: <20220128131006.67712-25-michel@lespinasse.org>
+X-Mailer: git-send-email 2.20.1
+In-Reply-To: <20220128131006.67712-1-michel@lespinasse.org>
+References: <20220128131006.67712-1-michel@lespinasse.org>
+MIME-Version: 1.0
+X-Rspam-User: nil
+X-Rspamd-Server: rspam05
+X-Rspamd-Queue-Id: 14C4520012
+X-Stat-Signature: x9zakqzcpsxmgzqiej1dk1tfes31bjqh
+Authentication-Results: imf03.hostedemail.com;
+	dkim=pass header.d=lespinasse.org header.s=srv-52-ed header.b=I1DZbEmz;
+	dkim=pass header.d=lespinasse.org header.s=srv-52-rsa header.b=BnwIWxwa;
+	dmarc=pass (policy=none) header.from=lespinasse.org;
+	spf=pass (imf03.hostedemail.com: domain of walken@lespinasse.org designates
+ 63.205.204.226 as permitted sender) smtp.mailfrom=walken@lespinasse.org
+X-HE-Tag: 1643375411-348992
+X-Bogosity: Ham, tests=bogofilter, spamicity=0.000000, version=1.2.4
+Sender: owner-linux-mm@kvack.org
+Precedence: bulk
+X-Loop: owner-majordomo@kvack.org
+List-ID: <linux-mm.kvack.org>
+
+Change mm_take_all_locks to also take the mmu_notifier_lock.
+Note that mm_take_all_locks is called from mmu_notifier_register() only.
+
+Signed-off-by: Michel Lespinasse <michel@lespinasse.org>
+---
+ mm/mmap.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/mm/mmap.c b/mm/mmap.c
+index b09a2c875507..a67c3600d995 100644
+--- a/mm/mmap.c
++++ b/mm/mmap.c
+@@ -3592,6 +3592,10 @@ int mm_take_all_locks(struct mm_struct *mm)
+ 
+ 	mutex_lock(&mm_all_locks_mutex);
+ 
++#if defined(CONFIG_MMU_NOTIFIER) && defined(CONFIG_SPECULATIVE_PAGE_FAULT)
++	percpu_down_write(mm->mmu_notifier_lock);
++#endif
++
+ 	for (vma = mm->mmap; vma; vma = vma->vm_next) {
+ 		if (signal_pending(current))
+ 			goto out_unlock;
+@@ -3679,6 +3683,10 @@ void mm_drop_all_locks(struct mm_struct *mm)
+ 			vm_unlock_mapping(vma->vm_file->f_mapping);
+ 	}
+ 
++#if defined(CONFIG_MMU_NOTIFIER) && defined(CONFIG_SPECULATIVE_PAGE_FAULT)
++	percpu_up_write(mm->mmu_notifier_lock);
++#endif
++
+ 	mutex_unlock(&mm_all_locks_mutex);
+ }
+ 
+

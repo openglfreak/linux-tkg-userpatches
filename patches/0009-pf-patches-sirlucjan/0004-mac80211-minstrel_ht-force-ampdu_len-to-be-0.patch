@@ -1,7 +1,7 @@
-From ff097a533719dfd74a9f051c794f3a2a3e76862d Mon Sep 17 00:00:00 2001
+From ae68617f576a45016978d2b7216010059158ca15 Mon Sep 17 00:00:00 2001
 From: Oleksandr Natalenko <oleksandr@natalenko.name>
-Date: Mon, 7 Jun 2021 16:45:45 +0200
-Subject: [PATCH 4/8] mac80211: minstrel_ht: force ampdu_len to be > 0
+Date: Fri, 8 Oct 2021 09:26:24 +0200
+Subject: [PATCH 4/9] mac80211: minstrel_ht: force ampdu_len to be > 0
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -37,7 +37,7 @@ Signed-off-by: Oleksandr Natalenko <oleksandr@natalenko.name>
  1 file changed, 6 insertions(+), 1 deletion(-)
 
 diff --git a/net/mac80211/rc80211_minstrel_ht.c b/net/mac80211/rc80211_minstrel_ht.c
-index 72b44d4c4..4d1a15ef6 100644
+index 72b44d4c4..f60003530 100644
 --- a/net/mac80211/rc80211_minstrel_ht.c
 +++ b/net/mac80211/rc80211_minstrel_ht.c
 @@ -440,8 +440,13 @@ minstrel_ht_get_tp_avg(struct minstrel_ht_sta *mi, int group, int rate,
@@ -48,7 +48,7 @@ index 72b44d4c4..4d1a15ef6 100644
 +	else {
  		ampdu_len = minstrel_ht_avg_ampdu_len(mi);
 +		if (unlikely(!ampdu_len)) {
-+			pr_err_once("minstrel_ht_get_tp_avg: ampdu_len == 0!");
++			pr_err_once("%s: ampdu_len == 0!\n", __func__);
 +			ampdu_len = 1;
 +		}
 +	}
@@ -56,5 +56,5 @@ index 72b44d4c4..4d1a15ef6 100644
  	nsecs = 1000 * overhead / ampdu_len;
  	nsecs += minstrel_mcs_groups[group].duration[rate] <<
 -- 
-2.33.0.328.g8b7c11b866
+2.33.1.711.g9d530dc002
 

@@ -1,0 +1,129 @@
+From patchwork Fri Jan 28 13:09:33 2022
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Michel Lespinasse <michel@lespinasse.org>
+X-Patchwork-Id: 12728501
+Return-Path: <owner-linux-mm@kvack.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from kanga.kvack.org (kanga.kvack.org [205.233.56.17])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id EBFB6C433EF
+	for <linux-mm@archiver.kernel.org>; Fri, 28 Jan 2022 13:10:10 +0000 (UTC)
+Received: by kanga.kvack.org (Postfix)
+	id 1EA5A6B0075; Fri, 28 Jan 2022 08:10:10 -0500 (EST)
+Received: by kanga.kvack.org (Postfix, from userid 40)
+	id 15F446B0073; Fri, 28 Jan 2022 08:10:10 -0500 (EST)
+X-Delivered-To: int-list-linux-mm@kvack.org
+Received: by kanga.kvack.org (Postfix, from userid 63042)
+	id E57126B0073; Fri, 28 Jan 2022 08:10:09 -0500 (EST)
+X-Delivered-To: linux-mm@kvack.org
+Received: from forelay.hostedemail.com (smtprelay0077.hostedemail.com
+ [216.40.44.77])
+	by kanga.kvack.org (Postfix) with ESMTP id D6DD36B0071
+	for <linux-mm@kvack.org>; Fri, 28 Jan 2022 08:10:09 -0500 (EST)
+Received: from smtpin14.hostedemail.com (10.5.19.251.rfc1918.com
+ [10.5.19.251])
+	by forelay01.hostedemail.com (Postfix) with ESMTP id 9CB361801ABC6
+	for <linux-mm@kvack.org>; Fri, 28 Jan 2022 13:10:09 +0000 (UTC)
+X-FDA: 79079728938.14.7189DE4
+Received: from server.lespinasse.org (server.lespinasse.org [63.205.204.226])
+	by imf14.hostedemail.com (Postfix) with ESMTP id 33A90100004
+	for <linux-mm@kvack.org>; Fri, 28 Jan 2022 13:10:09 +0000 (UTC)
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed;
+ d=lespinasse.org; i=@lespinasse.org; q=dns/txt; s=srv-52-ed;
+ t=1643375406; h=from : to : cc : subject : date : message-id :
+ in-reply-to : references : mime-version : content-transfer-encoding :
+ from; bh=Y2k4uPVeoJirwL08p+/VJjxEhsePEHeg9Wr+pPi/UaM=;
+ b=WVJsEvoRqkBk1wBf/PQvT+xODXvkJZ2W/KdNjDE+io9o82HbpdsxP3huXOEqePeoiipqa
+ 4ZiZYFmKjNnl0n6DQ==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=lespinasse.org;
+ i=@lespinasse.org; q=dns/txt; s=srv-52-rsa; t=1643375406; h=from : to
+ : cc : subject : date : message-id : in-reply-to : references :
+ mime-version : content-transfer-encoding : from;
+ bh=Y2k4uPVeoJirwL08p+/VJjxEhsePEHeg9Wr+pPi/UaM=;
+ b=vSQ8s0/J8zRmO0ii8kp4Dal6J6g7+90+5Tg8FB0H2IdHKfFKMNcbY4uu/b23/wp85T5aM
+ pOnoLkegyz82Ymv86cgI3Mob1ZWkjQNPdDjPdfSgstcziSsUGjmhsQLiAN4Oq3KjFDqih0C
+ akrA6ZElzAceI7GfqcA/Hx3uB4xgwNGlh4eo+ViqOgSTp0ckD0tcvXWGE2eciaPmXCP7mpw
+ cGEv2SmbXGevETiQwcjSC3/R20Z7R6KHdPlCkgiUFqy7JfGWasujKkQIZwyeKPSD4jS+ymv
+ FfkyfV9r8+INSo2NieNZfKcM0gOcwiJ1e5tDXPb88krQfhDssX28SUscD+QA==
+Received: from zeus.lespinasse.org (zeus.lespinasse.org [IPv6:fd00::150:0])
+	by server.lespinasse.org (Postfix) with ESMTPS id DAEF516094C;
+	Fri, 28 Jan 2022 05:10:06 -0800 (PST)
+Received: by zeus.lespinasse.org (Postfix, from userid 1000)
+	id C5D6220328; Fri, 28 Jan 2022 05:10:06 -0800 (PST)
+From: Michel Lespinasse <michel@lespinasse.org>
+To: Linux-MM <linux-mm@kvack.org>,
+	linux-kernel@vger.kernel.org,
+	Andrew Morton <akpm@linux-foundation.org>
+Cc: kernel-team@fb.com,
+	Laurent Dufour <ldufour@linux.ibm.com>,
+	Jerome Glisse <jglisse@google.com>,
+	Peter Zijlstra <peterz@infradead.org>,
+	Michal Hocko <mhocko@suse.com>,
+	Vlastimil Babka <vbabka@suse.cz>,
+	Davidlohr Bueso <dave@stgolabs.net>,
+	Matthew Wilcox <willy@infradead.org>,
+	Liam Howlett <liam.howlett@oracle.com>,
+	Rik van Riel <riel@surriel.com>,
+	Paul McKenney <paulmck@kernel.org>,
+	Song Liu <songliubraving@fb.com>,
+	Suren Baghdasaryan <surenb@google.com>,
+	Minchan Kim <minchan@google.com>,
+	Joel Fernandes <joelaf@google.com>,
+	David Rientjes <rientjes@google.com>,
+	Axel Rasmussen <axelrasmussen@google.com>,
+	Andy Lutomirski <luto@kernel.org>,
+	Michel Lespinasse <michel@lespinasse.org>
+Subject: [PATCH 02/35] [PATCH v2 02/35] mmap locking API: mmap_lock_is_contended returns a
+ bool
+Date: Fri, 28 Jan 2022 05:09:33 -0800
+Message-Id: <20220128131006.67712-3-michel@lespinasse.org>
+X-Mailer: git-send-email 2.20.1
+In-Reply-To: <20220128131006.67712-1-michel@lespinasse.org>
+References: <20220128131006.67712-1-michel@lespinasse.org>
+MIME-Version: 1.0
+X-Rspamd-Queue-Id: 33A90100004
+X-Rspam-User: nil
+Authentication-Results: imf14.hostedemail.com;
+	dkim=pass header.d=lespinasse.org header.s=srv-52-ed header.b=WVJsEvoR;
+	dkim=pass header.d=lespinasse.org header.s=srv-52-rsa header.b="vSQ8s0/J";
+	dmarc=pass (policy=none) header.from=lespinasse.org;
+	spf=pass (imf14.hostedemail.com: domain of walken@lespinasse.org designates
+ 63.205.204.226 as permitted sender) smtp.mailfrom=walken@lespinasse.org
+X-Stat-Signature: h7ruibc3h86k48xhcczyf77kf5wpzcdu
+X-Rspamd-Server: rspam08
+X-HE-Tag: 1643375409-97607
+X-Bogosity: Ham, tests=bogofilter, spamicity=0.000000, version=1.2.4
+Sender: owner-linux-mm@kvack.org
+Precedence: bulk
+X-Loop: owner-majordomo@kvack.org
+List-ID: <linux-mm.kvack.org>
+
+Change mmap_lock_is_contended to return a bool value, rather than an
+int which the callers are then supposed to interpret as a bool. This
+is to ensure consistency with other mmap lock API functions (such as
+the trylock functions).
+
+Signed-off-by: Michel Lespinasse <michel@lespinasse.org>
+---
+ include/linux/mmap_lock.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/include/linux/mmap_lock.h b/include/linux/mmap_lock.h
+index 96e113e23d04..db9785e11274 100644
+--- a/include/linux/mmap_lock.h
++++ b/include/linux/mmap_lock.h
+@@ -162,9 +162,9 @@ static inline void mmap_assert_write_locked(struct mm_struct *mm)
+ 	VM_BUG_ON_MM(!rwsem_is_locked(&mm->mmap_lock), mm);
+ }
+ 
+-static inline int mmap_lock_is_contended(struct mm_struct *mm)
++static inline bool mmap_lock_is_contended(struct mm_struct *mm)
+ {
+-	return rwsem_is_contended(&mm->mmap_lock);
++	return rwsem_is_contended(&mm->mmap_lock) != 0;
+ }
+ 
+ #endif /* _LINUX_MMAP_LOCK_H */
+

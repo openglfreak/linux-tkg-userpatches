@@ -1,0 +1,137 @@
+From patchwork Fri Jan 28 13:10:00 2022
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Michel Lespinasse <michel@lespinasse.org>
+X-Patchwork-Id: 12728529
+Return-Path: <owner-linux-mm@kvack.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from kanga.kvack.org (kanga.kvack.org [205.233.56.17])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 58044C433EF
+	for <linux-mm@archiver.kernel.org>; Fri, 28 Jan 2022 13:11:05 +0000 (UTC)
+Received: by kanga.kvack.org (Postfix)
+	id 1362E6B0096; Fri, 28 Jan 2022 08:10:16 -0500 (EST)
+Received: by kanga.kvack.org (Postfix, from userid 40)
+	id DC0156B0099; Fri, 28 Jan 2022 08:10:15 -0500 (EST)
+X-Delivered-To: int-list-linux-mm@kvack.org
+Received: by kanga.kvack.org (Postfix, from userid 63042)
+	id E570B6B008C; Fri, 28 Jan 2022 08:10:14 -0500 (EST)
+X-Delivered-To: linux-mm@kvack.org
+Received: from forelay.hostedemail.com (smtprelay0246.hostedemail.com
+ [216.40.44.246])
+	by kanga.kvack.org (Postfix) with ESMTP id DFABF6B009C
+	for <linux-mm@kvack.org>; Fri, 28 Jan 2022 08:10:13 -0500 (EST)
+Received: from smtpin28.hostedemail.com (10.5.19.251.rfc1918.com
+ [10.5.19.251])
+	by forelay04.hostedemail.com (Postfix) with ESMTP id 952929008D
+	for <linux-mm@kvack.org>; Fri, 28 Jan 2022 13:10:13 +0000 (UTC)
+X-FDA: 79079729106.28.73D23AD
+Received: from server.lespinasse.org (server.lespinasse.org [63.205.204.226])
+	by imf25.hostedemail.com (Postfix) with ESMTP id BD040A0015
+	for <linux-mm@kvack.org>; Fri, 28 Jan 2022 13:10:12 +0000 (UTC)
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed;
+ d=lespinasse.org; i=@lespinasse.org; q=dns/txt; s=srv-52-ed;
+ t=1643375407; h=from : to : cc : subject : date : message-id :
+ in-reply-to : references : mime-version : content-transfer-encoding :
+ from; bh=WKv5bmQRqPHdZUO4LXo+QEVU5+AgH+NzFasQ6BtkXFM=;
+ b=/llg3A/maOZyNvvtAsqPMT8BSicLcbnbTOgrCs9XoOeH6gnm+d0cUa1QPJAqq4O8MYZk+
+ 73okmSGTVaB7uXOAw==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=lespinasse.org;
+ i=@lespinasse.org; q=dns/txt; s=srv-52-rsa; t=1643375407; h=from : to
+ : cc : subject : date : message-id : in-reply-to : references :
+ mime-version : content-transfer-encoding : from;
+ bh=WKv5bmQRqPHdZUO4LXo+QEVU5+AgH+NzFasQ6BtkXFM=;
+ b=isSEOn+qW7HslS9ExCPC4SWo6ixC3JaQtA/XDcgOW/HSjp235iI6dbuuhQWVnRuW3C4VC
+ uRo57aSyhVd7UxYlHuifDAq7xC7OAJVnykW+5LpOPvsqHyO0fvzHtEyGaSJUUSc7CqFFm/Y
+ f1UKBDtJAXBGHOuTmsMGu6qrs5b+pNzdA1bQ34JZYbkQLf44t13EMFyrga+f9AXa9GS7G53
+ enzvE6DnD84v9hHe1ky+dyUTlXSOY08Oer0XUwqyqHSkurysfooyCTMjsrS5KRj/PVI3i+v
+ tIRp6oX2lYonjB00oQJKO6OFfmuobq1OxPPYGWKNhfaNDoAx3E7ifbr3/sew==
+Received: from zeus.lespinasse.org (zeus.lespinasse.org [10.0.0.150])
+	by server.lespinasse.org (Postfix) with ESMTPS id 36C7E160AC7;
+	Fri, 28 Jan 2022 05:10:07 -0800 (PST)
+Received: by zeus.lespinasse.org (Postfix, from userid 1000)
+	id 1CA4E2023B; Fri, 28 Jan 2022 05:10:07 -0800 (PST)
+From: Michel Lespinasse <michel@lespinasse.org>
+To: Linux-MM <linux-mm@kvack.org>,
+	linux-kernel@vger.kernel.org,
+	Andrew Morton <akpm@linux-foundation.org>
+Cc: kernel-team@fb.com,
+	Laurent Dufour <ldufour@linux.ibm.com>,
+	Jerome Glisse <jglisse@google.com>,
+	Peter Zijlstra <peterz@infradead.org>,
+	Michal Hocko <mhocko@suse.com>,
+	Vlastimil Babka <vbabka@suse.cz>,
+	Davidlohr Bueso <dave@stgolabs.net>,
+	Matthew Wilcox <willy@infradead.org>,
+	Liam Howlett <liam.howlett@oracle.com>,
+	Rik van Riel <riel@surriel.com>,
+	Paul McKenney <paulmck@kernel.org>,
+	Song Liu <songliubraving@fb.com>,
+	Suren Baghdasaryan <surenb@google.com>,
+	Minchan Kim <minchan@google.com>,
+	Joel Fernandes <joelaf@google.com>,
+	David Rientjes <rientjes@google.com>,
+	Axel Rasmussen <axelrasmussen@google.com>,
+	Andy Lutomirski <luto@kernel.org>,
+	Michel Lespinasse <michel@lespinasse.org>
+Subject: [PATCH 29/35] [PATCH v2 29/35] mm: disable rcu safe vma freeing for single threaded
+ user space
+Date: Fri, 28 Jan 2022 05:10:00 -0800
+Message-Id: <20220128131006.67712-30-michel@lespinasse.org>
+X-Mailer: git-send-email 2.20.1
+In-Reply-To: <20220128131006.67712-1-michel@lespinasse.org>
+References: <20220128131006.67712-1-michel@lespinasse.org>
+MIME-Version: 1.0
+X-Stat-Signature: a75iqpbgdb9u3e938rsq6eq116yuyue7
+X-Rspam-User: nil
+Authentication-Results: imf25.hostedemail.com;
+	dkim=pass header.d=lespinasse.org header.s=srv-52-ed header.b="/llg3A/m";
+	dkim=pass header.d=lespinasse.org header.s=srv-52-rsa header.b=isSEOn+q;
+	spf=pass (imf25.hostedemail.com: domain of walken@lespinasse.org designates
+ 63.205.204.226 as permitted sender) smtp.mailfrom=walken@lespinasse.org;
+	dmarc=pass (policy=none) header.from=lespinasse.org
+X-Rspamd-Server: rspam02
+X-Rspamd-Queue-Id: BD040A0015
+X-HE-Tag: 1643375412-511872
+X-Bogosity: Ham, tests=bogofilter, spamicity=0.000000, version=1.2.4
+Sender: owner-linux-mm@kvack.org
+Precedence: bulk
+X-Loop: owner-majordomo@kvack.org
+List-ID: <linux-mm.kvack.org>
+
+Performance tuning: as single threaded userspace does not use
+speculative page faults, it does not require rcu safe vma freeing.
+Turn this off to avoid the related (small) extra overheads.
+
+For multi threaded userspace, we often see a performance benefit from
+the rcu safe vma freeing - even in tests that do not have any frequent
+concurrent page faults ! This is because rcu safe vma freeing prevents
+recently released vmas from being immediately reused in a new thread.
+
+Signed-off-by: Michel Lespinasse <michel@lespinasse.org>
+---
+ kernel/fork.c | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/kernel/fork.c b/kernel/fork.c
+index db92e42d0087..34600fe86743 100644
+--- a/kernel/fork.c
++++ b/kernel/fork.c
+@@ -384,10 +384,12 @@ void vm_area_free(struct vm_area_struct *vma)
+ {
+ 	free_vma_anon_name(vma);
+ #ifdef CONFIG_SPECULATIVE_PAGE_FAULT
+-	call_rcu(&vma->vm_rcu, __vm_area_free);
+-#else
+-	kmem_cache_free(vm_area_cachep, vma);
++	if (atomic_read(&vma->vm_mm->mm_users) > 1) {
++		call_rcu(&vma->vm_rcu, __vm_area_free);
++		return;
++	}
+ #endif
++	kmem_cache_free(vm_area_cachep, vma);
+ }
+ 
+ static void account_kernel_stack(struct task_struct *tsk, int account)
+

@@ -1,0 +1,222 @@
+From patchwork Tue Jan  4 20:22:21 2022
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Yu Zhao <yuzhao@google.com>
+X-Patchwork-Id: 12703832
+Return-Path: <owner-linux-mm@kvack.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from kanga.kvack.org (kanga.kvack.org [205.233.56.17])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 88B5AC43219
+	for <linux-mm@archiver.kernel.org>; Tue,  4 Jan 2022 20:23:26 +0000 (UTC)
+Received: by kanga.kvack.org (Postfix)
+	id CA2D36B0074; Tue,  4 Jan 2022 15:23:25 -0500 (EST)
+Received: by kanga.kvack.org (Postfix, from userid 40)
+	id C054A6B0075; Tue,  4 Jan 2022 15:23:25 -0500 (EST)
+X-Delivered-To: int-list-linux-mm@kvack.org
+Received: by kanga.kvack.org (Postfix, from userid 63042)
+	id A7EF16B0078; Tue,  4 Jan 2022 15:23:25 -0500 (EST)
+X-Delivered-To: linux-mm@kvack.org
+Received: from forelay.hostedemail.com (smtprelay0174.hostedemail.com
+ [216.40.44.174])
+	by kanga.kvack.org (Postfix) with ESMTP id 8F9426B0074
+	for <linux-mm@kvack.org>; Tue,  4 Jan 2022 15:23:25 -0500 (EST)
+Received: from smtpin25.hostedemail.com (10.5.19.251.rfc1918.com
+ [10.5.19.251])
+	by forelay02.hostedemail.com (Postfix) with ESMTP id 55A827FAB1
+	for <linux-mm@kvack.org>; Tue,  4 Jan 2022 20:23:25 +0000 (UTC)
+X-FDA: 78993729570.25.FC450A5
+Received: from mail-yb1-f202.google.com (mail-yb1-f202.google.com
+ [209.85.219.202])
+	by imf06.hostedemail.com (Postfix) with ESMTP id 3B1BD180002
+	for <linux-mm@kvack.org>; Tue,  4 Jan 2022 20:23:23 +0000 (UTC)
+Received: by mail-yb1-f202.google.com with SMTP id
+ s127-20020a252c85000000b0060be2b7b8e9so50776889ybs.8
+        for <linux-mm@kvack.org>; Tue, 04 Jan 2022 12:23:24 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20210112;
+        h=date:in-reply-to:message-id:mime-version:references:subject:from:to
+         :cc;
+        bh=ErZiUixWH/cJcxMlnoQDl0hBUoB+SSs91qpm5nkbK+Y=;
+        b=cxbZdvswWE7RZvP9IvXMveg8yKckpkPwQ+2pB0JQtZNGJXgw/zJq3qgpnGHQxcj1Ve
+         fc0QlCSku5oy+ODBWo6NEXfA/YEXTUwkxcLs+1/h0xJwL6SJzuX4uEZmWHIGpcH0n9Ok
+         eZWg03zHKsitT8bXnSMhZa+ECdO7xPzvlef6DCD4BJC3skgbIcsadIlpon94Xlikm+27
+         FhxtE4Qaj0JgRvBaw+KRd/WKcxzY16fsX8Lg7slcr+PjLXtluL865vIv0C/1J9GvNy22
+         8Z4xo/oacDiHAWF+grA8rPcZ0B+jiekIu5vNFhRTHnNxKctkTj7ZTMyM2D0g0QD0nF/1
+         u5eQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112;
+        h=x-gm-message-state:date:in-reply-to:message-id:mime-version
+         :references:subject:from:to:cc;
+        bh=ErZiUixWH/cJcxMlnoQDl0hBUoB+SSs91qpm5nkbK+Y=;
+        b=1WFWrkU0POogH4X2I+GEuXP6S9wy1FD82nHGaP9zw+px+BOVZBeshcOZKBVuphdwS5
+         zUJ3kqVe7awNbfI1FdnutbcZsDSMIDKujUXJRAVLdHDDlgcAsnUCJjLD4Qyeqgz0Gbg5
+         7rQ2MNQqtvW1k4EAjHMEDJOHKnxMSN+DCM+eQd1SevgTm4v1lNkBS+1CpdG33uQd5KMp
+         7+10V+oNeBOWQ+dSjFZZjclR9Sjw7eRmkvIGlh533+13wxyeZ95qayXGS4aQW3nRzk+U
+         Pr6wKiJcEA5D58NHzbrzZeZQA4CXnGX2iquyrhpwvhCURJevwRBdKz1d8qarGMycxF3d
+         wfsw==
+X-Gm-Message-State: AOAM530gKFYpl02Th8/O4eKKIAS2By7XD2fB/w5gL/8vQvlAwWEDwYUD
+	k5IzWmlRvJ3tcQPC317Gsv461sorOMc=
+X-Google-Smtp-Source: 
+ ABdhPJw5uU6Ej243oVr18SKxslk8lmcRKMlrIEw/dUnqkaxEwutRtnYpOs55oumSEq1IaOOSKJErme31+Xo=
+X-Received: from yuzhao.bld.corp.google.com
+ ([2620:15c:183:200:6c8c:5506:7ca2:9dfd])
+ (user=yuzhao job=sendgmr) by 2002:a25:2554:: with SMTP id
+ l81mr42813951ybl.101.1641327804159;
+ Tue, 04 Jan 2022 12:23:24 -0800 (PST)
+Date: Tue,  4 Jan 2022 13:22:21 -0700
+In-Reply-To: <20220104202227.2903605-1-yuzhao@google.com>
+Message-Id: <20220104202227.2903605-3-yuzhao@google.com>
+Mime-Version: 1.0
+References: <20220104202227.2903605-1-yuzhao@google.com>
+X-Mailer: git-send-email 2.34.1.448.ga2b2bfdf31-goog
+Subject: [PATCH 2/9] [PATCH v6 2/9] mm: x86: add CONFIG_ARCH_HAS_NONLEAF_PMD_YOUNG
+From: Yu Zhao <yuzhao@google.com>
+To: Andrew Morton <akpm@linux-foundation.org>,
+	Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Andi Kleen <ak@linux.intel.com>,
+ Catalin Marinas <catalin.marinas@arm.com>,
+	Dave Hansen <dave.hansen@linux.intel.com>, Hillf Danton <hdanton@sina.com>,
+	Jens Axboe <axboe@kernel.dk>, Jesse Barnes <jsbarnes@google.com>,
+	Johannes Weiner <hannes@cmpxchg.org>, Jonathan Corbet <corbet@lwn.net>,
+	Matthew Wilcox <willy@infradead.org>, Mel Gorman <mgorman@suse.de>,
+	Michael Larabel <Michael@michaellarabel.com>,
+ Michal Hocko <mhocko@kernel.org>,
+	Rik van Riel <riel@surriel.com>, Vlastimil Babka <vbabka@suse.cz>,
+ Will Deacon <will@kernel.org>,
+	Ying Huang <ying.huang@intel.com>, linux-arm-kernel@lists.infradead.org,
+	linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org,
+	page-reclaim@google.com, x86@kernel.org, Yu Zhao <yuzhao@google.com>,
+	Konstantin Kharlamov <Hi-Angel@yandex.ru>
+X-Rspamd-Server: rspam09
+X-Rspamd-Queue-Id: 3B1BD180002
+X-Stat-Signature: h4sa8gy87jc9h3yypo4t1z5ucmhrwxq1
+Authentication-Results: imf06.hostedemail.com;
+	dkim=pass header.d=google.com header.s=20210112 header.b=cxbZdvsw;
+	spf=pass (imf06.hostedemail.com: domain of
+ 3vKzUYQYKCH0zv0ibphpphmf.dpnmjovy-nnlwbdl.psh@flex--yuzhao.bounces.google.com
+ designates 209.85.219.202 as permitted sender)
+ smtp.mailfrom=3vKzUYQYKCH0zv0ibphpphmf.dpnmjovy-nnlwbdl.psh@flex--yuzhao.bounces.google.com;
+	dmarc=pass (policy=reject) header.from=google.com
+X-HE-Tag: 1641327803-588703
+X-Bogosity: Ham, tests=bogofilter, spamicity=0.000000, version=1.2.4
+Sender: owner-linux-mm@kvack.org
+Precedence: bulk
+X-Loop: owner-majordomo@kvack.org
+List-ID: <linux-mm.kvack.org>
+
+Some architectures support the accessed bit in non-leaf PMD entries,
+e.g., x86_64 sets the accessed bit in a non-leaf PMD entry when using
+it as part of linear address translation [1]. Page table walkers that
+clear the accessed bit may use this feature to reduce their search
+space.
+
+Although an inline function is preferable, this capability is added as
+a configuration option for the consistency with the existing macros.
+
+[1]: Intel 64 and IA-32 Architectures Software Developer's Manual
+     Volume 3 (June 2021), section 4.8
+
+Signed-off-by: Yu Zhao <yuzhao@google.com>
+Tested-by: Konstantin Kharlamov <Hi-Angel@yandex.ru>
+---
+ arch/Kconfig                   | 9 +++++++++
+ arch/x86/Kconfig               | 1 +
+ arch/x86/include/asm/pgtable.h | 3 ++-
+ arch/x86/mm/pgtable.c          | 5 ++++-
+ include/linux/pgtable.h        | 4 ++--
+ 5 files changed, 18 insertions(+), 4 deletions(-)
+
+diff --git a/arch/Kconfig b/arch/Kconfig
+index d3c4ab249e9c..10f564340f79 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -1312,6 +1312,15 @@ config ARCH_HAS_PARANOID_L1D_FLUSH
+ config DYNAMIC_SIGFRAME
+ 	bool
+ 
++config ARCH_HAS_NONLEAF_PMD_YOUNG
++	bool
++	depends on PGTABLE_LEVELS > 2
++	help
++	  Architectures that select this option are capable of setting the
++	  accessed bit in non-leaf PMD entries when using them as part of linear
++	  address translations. Page table walkers that clear the accessed bit
++	  may use this feature to reduce their search space.
++
+ source "kernel/gcov/Kconfig"
+ 
+ source "scripts/gcc-plugins/Kconfig"
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 5c2ccb85f2ef..5a4843242f09 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -85,6 +85,7 @@ config X86
+ 	select ARCH_HAS_PMEM_API		if X86_64
+ 	select ARCH_HAS_PTE_DEVMAP		if X86_64
+ 	select ARCH_HAS_PTE_SPECIAL
++	select ARCH_HAS_NONLEAF_PMD_YOUNG	if X86_64
+ 	select ARCH_HAS_UACCESS_FLUSHCACHE	if X86_64
+ 	select ARCH_HAS_COPY_MC			if X86_64
+ 	select ARCH_HAS_SET_MEMORY
+diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
+index c60b16f8b741..36205ec0acac 100644
+--- a/arch/x86/include/asm/pgtable.h
++++ b/arch/x86/include/asm/pgtable.h
+@@ -817,7 +817,8 @@ static inline unsigned long pmd_page_vaddr(pmd_t pmd)
+ 
+ static inline int pmd_bad(pmd_t pmd)
+ {
+-	return (pmd_flags(pmd) & ~_PAGE_USER) != _KERNPG_TABLE;
++	return (pmd_flags(pmd) & ~(_PAGE_USER | _PAGE_ACCESSED)) !=
++	       (_KERNPG_TABLE & ~_PAGE_ACCESSED);
+ }
+ 
+ static inline unsigned long pages_to_mb(unsigned long npg)
+diff --git a/arch/x86/mm/pgtable.c b/arch/x86/mm/pgtable.c
+index 3481b35cb4ec..a224193d84bf 100644
+--- a/arch/x86/mm/pgtable.c
++++ b/arch/x86/mm/pgtable.c
+@@ -550,7 +550,7 @@ int ptep_test_and_clear_young(struct vm_area_struct *vma,
+ 	return ret;
+ }
+ 
+-#ifdef CONFIG_TRANSPARENT_HUGEPAGE
++#if defined(CONFIG_TRANSPARENT_HUGEPAGE) || defined(CONFIG_ARCH_HAS_NONLEAF_PMD_YOUNG)
+ int pmdp_test_and_clear_young(struct vm_area_struct *vma,
+ 			      unsigned long addr, pmd_t *pmdp)
+ {
+@@ -562,6 +562,9 @@ int pmdp_test_and_clear_young(struct vm_area_struct *vma,
+ 
+ 	return ret;
+ }
++#endif
++
++#ifdef CONFIG_TRANSPARENT_HUGEPAGE
+ int pudp_test_and_clear_young(struct vm_area_struct *vma,
+ 			      unsigned long addr, pud_t *pudp)
+ {
+diff --git a/include/linux/pgtable.h b/include/linux/pgtable.h
+index 53bd6a26918f..b51f939a73f7 100644
+--- a/include/linux/pgtable.h
++++ b/include/linux/pgtable.h
+@@ -211,7 +211,7 @@ static inline int ptep_test_and_clear_young(struct vm_area_struct *vma,
+ #endif
+ 
+ #ifndef __HAVE_ARCH_PMDP_TEST_AND_CLEAR_YOUNG
+-#ifdef CONFIG_TRANSPARENT_HUGEPAGE
++#if defined(CONFIG_TRANSPARENT_HUGEPAGE) || defined(CONFIG_ARCH_HAS_NONLEAF_PMD_YOUNG)
+ static inline int pmdp_test_and_clear_young(struct vm_area_struct *vma,
+ 					    unsigned long address,
+ 					    pmd_t *pmdp)
+@@ -232,7 +232,7 @@ static inline int pmdp_test_and_clear_young(struct vm_area_struct *vma,
+ 	BUILD_BUG();
+ 	return 0;
+ }
+-#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
++#endif /* CONFIG_TRANSPARENT_HUGEPAGE || CONFIG_ARCH_HAS_NONLEAF_PMD_YOUNG */
+ #endif
+ 
+ #ifndef __HAVE_ARCH_PTEP_CLEAR_YOUNG_FLUSH
+
