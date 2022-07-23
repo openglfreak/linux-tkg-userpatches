@@ -1,0 +1,102 @@
+From 5889d437f27cdc5c34b0cbf865a7acd45e993e22 Mon Sep 17 00:00:00 2001
+From: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+Date: Fri, 18 Dec 2020 16:47:35 +0300
+Subject: [PATCH 24/57] nvme-pci: Handle movable BARs
+
+Hot-added devices can affect the existing ones by moving their BARs. The
+PCI subsystem will inform the NVME driver about this by invoking the
+.rescan_prepare() and .rescan_done() hooks, so the BARs can by re-mapped.
+
+Tested under the "randrw" mode of the fio tool, and when using an NVME
+drive as a root filesystem storage. Before the hot-adding:
+
+  % sudo cat /proc/iomem
+  ...
+                3fe800000000-3fe8007fffff : PCI Bus 0020:0b
+                  3fe800000000-3fe8007fffff : PCI Bus 0020:18
+                    3fe800000000-3fe8000fffff : 0020:18:00.0
+                      3fe800000000-3fe8000fffff : nvme
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^
+                    3fe800100000-3fe80017ffff : 0020:18:00.0
+  ...
+
+Then another NVME drive was hot-added, so BARs of the 0020:18:00.0 are
+moved:
+
+  % sudo cat /proc/iomem
+    ...
+                3fe800000000-3fe800ffffff : PCI Bus 0020:0b
+                  3fe800000000-3fe8007fffff : PCI Bus 0020:10
+                    3fe800000000-3fe800003fff : 0020:10:00.0
+                      3fe800000000-3fe800003fff : nvme
+                    3fe800010000-3fe80001ffff : 0020:10:00.0
+                  3fe800800000-3fe800ffffff : PCI Bus 0020:18
+                    3fe800800000-3fe8008fffff : 0020:18:00.0
+                      3fe800800000-3fe8008fffff : nvme
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^
+                    3fe800900000-3fe80097ffff : 0020:18:00.0
+    ...
+
+During the rescanning, both READ and WRITE speeds drop to zero for a while
+due to driver's pause, then restore.
+
+Cc: linux-nvme@lists.infradead.org
+Cc: Christoph Hellwig <hch@lst.de>
+Signed-off-by: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+---
+ drivers/nvme/host/pci.c | 27 ++++++++++++++++++++++++++-
+ 1 file changed, 26 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/nvme/host/pci.c b/drivers/nvme/host/pci.c
+index 111111111..111111111 100644
+--- a/drivers/nvme/host/pci.c
++++ b/drivers/nvme/host/pci.c
+@@ -1808,7 +1808,7 @@ static int nvme_remap_bar(struct nvme_dev *dev, unsigned long size)
+ {
+ 	struct pci_dev *pdev = to_pci_dev(dev->dev);
+ 
+-	if (size <= dev->bar_mapped_size)
++	if (dev->bar && size <= dev->bar_mapped_size)
+ 		return 0;
+ 	if (size > pci_resource_len(pdev, 0))
+ 		return -ENOMEM;
+@@ -3414,6 +3414,28 @@ static void nvme_error_resume(struct pci_dev *pdev)
+ 	flush_work(&dev->ctrl.reset_work);
+ }
+ 
++static bool nvme_bar_fixed(struct pci_dev *pdev, int resno)
++{
++	return false;
++}
++
++static void nvme_rescan_prepare(struct pci_dev *pdev)
++{
++	struct nvme_dev *dev = pci_get_drvdata(pdev);
++
++	nvme_dev_disable(dev, true);
++	nvme_dev_unmap(dev);
++	dev->bar = NULL;
++}
++
++static void nvme_rescan_done(struct pci_dev *pdev)
++{
++	struct nvme_dev *dev = pci_get_drvdata(pdev);
++
++	nvme_dev_map(dev);
++	nvme_reset_ctrl(&dev->ctrl);
++}
++
+ static const struct pci_error_handlers nvme_err_handler = {
+ 	.error_detected	= nvme_error_detected,
+ 	.slot_reset	= nvme_slot_reset,
+@@ -3553,6 +3575,9 @@ static struct pci_driver nvme_driver = {
+ #endif
+ 	.sriov_configure = pci_sriov_configure_simple,
+ 	.err_handler	= &nvme_err_handler,
++	.rescan_prepare	= nvme_rescan_prepare,
++	.rescan_done	= nvme_rescan_done,
++	.bar_fixed	= nvme_bar_fixed,
+ };
+ 
+ static int __init nvme_init(void)
+

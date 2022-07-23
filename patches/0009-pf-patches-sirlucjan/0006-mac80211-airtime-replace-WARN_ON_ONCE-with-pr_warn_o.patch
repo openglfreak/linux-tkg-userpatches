@@ -38,10 +38,10 @@ Signed-off-by: Oleksandr Natalenko <oleksandr@natalenko.name>
  1 file changed, 10 insertions(+), 2 deletions(-)
 
 diff --git a/net/mac80211/airtime.c b/net/mac80211/airtime.c
-index 26d2f8ba7..03fb8070b 100644
+index 1111111..1111111 100644
 --- a/net/mac80211/airtime.c
 +++ b/net/mac80211/airtime.c
-@@ -453,9 +453,17 @@ static u32 ieee80211_get_rate_duration(struct ieee80211_hw *hw,
+@@ -448,9 +448,17 @@ static u32 ieee80211_get_rate_duration(struct ieee80211_hw *hw,
  		return 0;
  	}
  
@@ -62,5 +62,5 @@ index 26d2f8ba7..03fb8070b 100644
  	duration = airtime_mcs_groups[group].duration[idx];
  	duration <<= airtime_mcs_groups[group].shift;
 -- 
-2.33.1.711.g9d530dc002
+2.37.1
 

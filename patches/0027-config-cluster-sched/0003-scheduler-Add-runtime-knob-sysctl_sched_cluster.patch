@@ -1,0 +1,229 @@
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH 3/5] scheduler: Add runtime knob sysctl_sched_cluster
+From: Tim Chen <tim.c.chen@linux.intel.com>
+Date: Fri, 03 Dec 2021 12:32:40 -0800
+Message-Id: <573fbedc1e15cd533f8e183bd3770bf58da2f379.1638563225.git.tim.c.chen@linux.intel.com>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Tim Chen <tim.c.chen@linux.intel.com>, Arjan Van De Ven <arjan.van.de.ven@intel.com>, Ricardo Neri <ricardo.neri@intel.com>, Len Brown <len.brown@intel.com>, Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com>, Artem Bityutskiy <artem.bityutskiy@linux.intel.com>, Chen Yu <yu.c.chen@intel.com>, Song Bao Hua <song.bao.hua@hisilicon.com>, yangyicong <yangyicong@huawei.com>, Michael Larabel <Michael@MichaelLarabel.com>, linux-kernel@vger.kernel.org
+In-Reply-To: <cover.1638563225.git.tim.c.chen@linux.intel.com>
+References: <cover.1638563225.git.tim.c.chen@linux.intel.com>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Allow run time configuration of the scheduler to use cluster
+scheduling.  Configuration can be changed via the sysctl variable
+/proc/sys/kernel/sched_cluster. Setting it to 1 enable cluster
+scheduling and setting it to 0 turns it off.
+
+Cluster scheduling should benefit independent tasks by load balancing
+them between clusters.  It reaps the most benefit when the system's CPUs
+are not fully busy, so we can spread the tasks out between the clusters to
+reduce contention on cluster resource (e.g. L2 cache).
+
+However, if the system is expected to operate close to full utilization,
+the system admin could turn this feature off so as not to incur
+extra load balancing overhead between the cluster domains.
+
+Signed-off-by: Tim Chen <tim.c.chen@linux.intel.com>
+---
+ arch/x86/kernel/smpboot.c    |  8 +++++
+ drivers/base/arch_topology.c | 13 +++++---
+ include/linux/sched/sysctl.h |  4 +++
+ include/linux/topology.h     |  1 +
+ kernel/sched/core.c          |  1 +
+ kernel/sched/sched.h         |  6 ++++
+ kernel/sched/topology.c      | 65 ++++++++++++++++++++++++++++++++++++
+ 7 files changed, 94 insertions(+), 4 deletions(-)
+
+diff --git a/arch/x86/kernel/smpboot.c b/arch/x86/kernel/smpboot.c
+index 111111111..111111111 100644
+--- a/arch/x86/kernel/smpboot.c
++++ b/arch/x86/kernel/smpboot.c
+@@ -56,6 +56,7 @@
+ #include <linux/numa.h>
+ #include <linux/pgtable.h>
+ #include <linux/overflow.h>
++#include <linux/cpuset.h>
+ 
+ #include <asm/acpi.h>
+ #include <asm/desc.h>
+@@ -123,6 +124,13 @@ int arch_update_cpu_topology(void)
+ 	return retval;
+ }
+ 
++void arch_rebuild_cpu_topology(void)
++{
++	x86_topology_update = true;
++	rebuild_sched_domains();
++	x86_topology_update = false;
++}
++
+ static inline void smpboot_setup_warm_reset_vector(unsigned long start_eip)
+ {
+ 	unsigned long flags;
+diff --git a/drivers/base/arch_topology.c b/drivers/base/arch_topology.c
+index 111111111..111111111 100644
+--- a/drivers/base/arch_topology.c
++++ b/drivers/base/arch_topology.c
+@@ -245,16 +245,21 @@ int topology_update_cpu_topology(void)
+ 	return update_topology;
+ }
+ 
++void __weak arch_rebuild_cpu_topology(void)
++{
++	update_topology = 1;
++	rebuild_sched_domains();
++	pr_debug("sched_domain hierarchy rebuilt, flags updated\n");
++	update_topology = 0;
++}
++
+ /*
+  * Updating the sched_domains can't be done directly from cpufreq callbacks
+  * due to locking, so queue the work for later.
+  */
+ static void update_topology_flags_workfn(struct work_struct *work)
+ {
+-	update_topology = 1;
+-	rebuild_sched_domains();
+-	pr_debug("sched_domain hierarchy rebuilt, flags updated\n");
+-	update_topology = 0;
++	arch_rebuild_cpu_topology();
+ }
+ 
+ static u32 *raw_capacity;
+diff --git a/include/linux/sched/sysctl.h b/include/linux/sched/sysctl.h
+index 111111111..111111111 100644
+--- a/include/linux/sched/sysctl.h
++++ b/include/linux/sched/sysctl.h
+@@ -34,4 +34,8 @@ extern int sysctl_numa_balancing_mode;
+ int sysctl_numa_balancing(struct ctl_table *table, int write, void *buffer,
+ 		size_t *lenp, loff_t *ppos);
+ 
++#ifdef CONFIG_SCHED_CLUSTER
++extern unsigned int sysctl_sched_cluster;
++#endif
++
+ #endif /* _LINUX_SCHED_SYSCTL_H */
+diff --git a/include/linux/topology.h b/include/linux/topology.h
+index 111111111..111111111 100644
+--- a/include/linux/topology.h
++++ b/include/linux/topology.h
+@@ -44,6 +44,7 @@
+ 		if (nr_cpus_node(node))
+ 
+ int arch_update_cpu_topology(void);
++void arch_rebuild_cpu_topology(void);
+ 
+ /* Conform to ACPI 2.0 SLIT distance definitions */
+ #define LOCAL_DISTANCE		10
+diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+index 111111111..111111111 100644
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -9530,6 +9530,7 @@ int sched_cpu_dying(unsigned int cpu)
+ void __init sched_init_smp(void)
+ {
+ 	sched_init_numa(NUMA_NO_NODE);
++	set_sched_cluster();
+ 
+ 	/*
+ 	 * There's no userspace yet to cause hotplug operations; hence all the
+diff --git a/kernel/sched/sched.h b/kernel/sched/sched.h
+index 111111111..111111111 100644
+--- a/kernel/sched/sched.h
++++ b/kernel/sched/sched.h
+@@ -1734,6 +1734,12 @@ this_rq_lock_irq(struct rq_flags *rf)
+ 	return rq;
+ }
+ 
++#ifdef CONFIG_SCHED_CLUSTER
++extern void set_sched_cluster(void);
++#else
++static inline void set_sched_cluster(void) { }
++#endif
++
+ #ifdef CONFIG_NUMA
+ enum numa_topology_type {
+ 	NUMA_DIRECT,
+diff --git a/kernel/sched/topology.c b/kernel/sched/topology.c
+index 111111111..111111111 100644
+--- a/kernel/sched/topology.c
++++ b/kernel/sched/topology.c
+@@ -1684,6 +1684,71 @@ static struct sched_domain_topology_level *sched_domain_topology =
+ 	default_topology;
+ static struct sched_domain_topology_level *sched_domain_topology_saved;
+ 
++#ifdef CONFIG_SCHED_CLUSTER
++void set_sched_cluster(void)
++{
++	struct sched_domain_topology_level *tl;
++
++	for (tl = sched_domain_topology; tl->mask; tl++) {
++		if (tl->sd_flags && (tl->sd_flags() & SD_CLUSTER)) {
++			if (!sysctl_sched_cluster)
++				tl->flags |= SDTL_SKIP;
++			else
++				tl->flags &= ~SDTL_SKIP;
++			break;
++		}
++	}
++}
++
++/* set via /proc/sys/kernel/sched_cluster */
++unsigned int __read_mostly sysctl_sched_cluster = 1;
++
++static DEFINE_MUTEX(sched_cluster_mutex);
++int sched_cluster_handler(struct ctl_table *table, int write,
++		void *buffer, size_t *lenp, loff_t *ppos)
++{
++	int ret;
++	unsigned int oldval;
++
++	if (write && !capable(CAP_SYS_ADMIN))
++		return -EPERM;
++
++	mutex_lock(&sched_cluster_mutex);
++	oldval = sysctl_sched_cluster;
++	ret = proc_dointvec_minmax(table, write, buffer, lenp, ppos);
++	if (!ret && write) {
++		if (oldval != sysctl_sched_cluster) {
++			set_sched_cluster();
++			arch_rebuild_cpu_topology();
++		}
++	}
++	mutex_unlock(&sched_cluster_mutex);
++
++	return ret;
++}
++
++static struct ctl_table sched_cluster_sysctls[] = {
++	{
++		.procname       = "sched_cluster",
++		.data           = &sysctl_sched_cluster,
++		.maxlen         = sizeof(unsigned int),
++		.mode           = 0644,
++		.proc_handler   = sched_cluster_handler,
++		.extra1         = SYSCTL_ZERO,
++		.extra2         = SYSCTL_ONE,
++	},
++	{}
++};
++
++static int __init sched_cluster_sysctl_init(void)
++{
++	register_sysctl_init("kernel", sched_cluster_sysctls);
++	return 0;
++}
++
++late_initcall(sched_cluster_sysctl_init);
++#endif
++
+ static struct sched_domain_topology_level *next_tl(struct sched_domain_topology_level *tl)
+ {
+ 	++tl;
+
+-- 
+2.37.1
+

@@ -1,0 +1,82 @@
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH RFC 4/14] mm/mprotect: preserve write with MM_CP_TRY_CHANGE_WRITABLE
+From: Nadav Amit <nadav.amit@gmail.com>
+Date: Mon, 18 Jul 2022 05:02:02 -0700
+Message-Id: <20220718120212.3180-5-namit@vmware.com>
+To: linux-mm@kvack.org
+Cc: linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Axel Rasmussen <axelrasmussen@google.com>, Nadav Amit <namit@vmware.com>, Andrea Arcangeli <aarcange@redhat.com>, Andrew Cooper <andrew.cooper3@citrix.com>, Andy Lutomirski <luto@kernel.org>, Dave Hansen <dave.hansen@linux.intel.com>, David Hildenbrand <david@redhat.com>, Peter Xu <peterx@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, Yu Zhao <yuzhao@google.com>, Nick Piggin <npiggin@gmail.com>
+In-Reply-To: <20220718120212.3180-1-namit@vmware.com>
+References: <20220718120212.3180-1-namit@vmware.com>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+From: Nadav Amit <namit@vmware.com>
+
+When MM_CP_TRY_CHANGE_WRITABLE is used, change_pte_range() tries to set
+PTEs as writable.
+
+Yet, writable PTEs might still become read-only, due to various
+limitations of the logic that determines whether a PTE can become
+writable (see can_change_pte_writable()). Anyhow, it is much easier to
+keep the writable bit set when MM_CP_TRY_CHANGE_WRITABLE is used than to
+first clear it and then figure out whether it can be set again.
+
+Preserve the write-bit when MM_CP_TRY_CHANGE_WRITABLE is used, similarly
+to the way it is done with NUMA.
+
+Cc: Andrea Arcangeli <aarcange@redhat.com>
+Cc: Andrew Cooper <andrew.cooper3@citrix.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Dave Hansen <dave.hansen@linux.intel.com>
+Cc: David Hildenbrand <david@redhat.com>
+Cc: Peter Xu <peterx@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Will Deacon <will@kernel.org>
+Cc: Yu Zhao <yuzhao@google.com>
+Cc: Nick Piggin <npiggin@gmail.com>
+Signed-off-by: Nadav Amit <namit@vmware.com>
+---
+ mm/mprotect.c | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/mm/mprotect.c b/mm/mprotect.c
+index 111111111..111111111 100644
+--- a/mm/mprotect.c
++++ b/mm/mprotect.c
+@@ -84,6 +84,7 @@ static unsigned long change_pte_range(struct mmu_gather *tlb,
+ 	bool uffd_wp = cp_flags & MM_CP_UFFD_WP;
+ 	bool uffd_wp_resolve = cp_flags & MM_CP_UFFD_WP_RESOLVE;
+ 	bool will_need = cp_flags & MM_CP_WILL_NEED;
++	bool try_change_writable = cp_flags & MM_CP_TRY_CHANGE_WRITABLE;
+ 
+ 	tlb_change_page_size(tlb, PAGE_SIZE);
+ 
+@@ -114,7 +115,8 @@ static unsigned long change_pte_range(struct mmu_gather *tlb,
+ 		oldpte = *pte;
+ 		if (pte_present(oldpte)) {
+ 			pte_t ptent;
+-			bool preserve_write = prot_numa && pte_write(oldpte);
++			bool preserve_write = (prot_numa || try_change_writable) &&
++					       pte_write(oldpte);
+ 
+ 			/*
+ 			 * Avoid trapping faults against the zero or KSM
+@@ -190,8 +192,7 @@ static unsigned long change_pte_range(struct mmu_gather *tlb,
+ 			 * example, if a PTE is already dirty and no other
+ 			 * COW or special handling is required.
+ 			 */
+-			if ((cp_flags & MM_CP_TRY_CHANGE_WRITABLE) &&
+-			    !pte_write(ptent) &&
++			if (try_change_writable && !pte_write(ptent) &&
+ 			    can_change_pte_writable(vma, addr, ptent)) {
+ 				ptent = pte_mkwrite(ptent);
+ 				if (will_need)
+
+-- 
+
+2.37.1
+

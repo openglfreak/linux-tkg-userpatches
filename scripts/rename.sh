@@ -212,14 +212,23 @@ main() (
         esac
     done
 
+    error_patch=false
+
     for patch in [0-9][0-9][0-9][0-9]-* ps[0-9][0-9][0-9][0-9]-*; do
         [ -e "${patch}" ] || continue
+        [ -d "${patch}" ] && continue
         case "${patch}" in ps999[0-9]-*|999[0-9]-*)
             continue
         esac
 
-        if [ 1 -ne "$(grep -c '^Subject: ' -- "${patch}")" ]; then
-            printf 'Error: Patch contains multiple Subjects: %s\n' "$(_tty_filename "${patch}")" >&2
+        subject_count="$(grep -c '^Subject: ' -- "${patch}")" ||:
+        if [ 1 -ne "${subject_count}" ]; then
+            if [ 1 -lt "${subject_count}" ]; then
+                printf 'Error: Patch contains multiple Subjects: %s\n' "$(_tty_filename "${patch}")" >&2
+            else
+                printf 'Error: Patch contains no Subjects: %s\n' "$(_tty_filename "${patch}")" >&2
+            fi
+            error_patch=true
             continue
         fi
 
@@ -247,10 +256,14 @@ main() (
         prefix=
         if [ x != "x${patchset_number}" ]; then
             patchset_number="$(remove_leading_zeroes "${patchset_number}")"
+            patchset_number="${patchset_number:-0}"
             patchset_number="$(format_number "${patchset_number}" 2>/dev/null)"
             prefix="ps${patchset_number}-${patch_number:+p}"
         fi
-        patch_number="$(remove_leading_zeroes "${patch_number}")"
+        if [ x != "x${patch_number}" ]; then
+            patch_number="$(remove_leading_zeroes "${patch_number}")"
+            patch_number="${patch_number:-0}"
+        fi
         filename="$(make_patch_file_name "${prefix}" "${patch_number}" \
             "${subject_commit_msg}" "${file_extension+.${file_extension}}")"
 
@@ -267,6 +280,12 @@ main() (
             printf 'Skipping %s\n' "$(_tty_filename "${patch}")"
         fi
     done
+
+    if [ xfalse != "x${error_patch}" ]; then
+        return 1
+    fi
 )
 
-main ${1+"$@"}
+if ! [ "${RENAME_SH_NO_MAIN:-0}" -ne 0 ] >/dev/null 2>&1; then
+    main ${1+"$@"}
+fi

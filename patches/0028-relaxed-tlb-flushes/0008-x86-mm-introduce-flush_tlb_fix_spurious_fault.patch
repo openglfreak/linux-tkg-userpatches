@@ -1,0 +1,87 @@
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH RFC 8/14] x86/mm: introduce flush_tlb_fix_spurious_fault
+From: Nadav Amit <nadav.amit@gmail.com>
+Date: Mon, 18 Jul 2022 05:02:06 -0700
+Message-Id: <20220718120212.3180-9-namit@vmware.com>
+To: linux-mm@kvack.org
+Cc: linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Axel Rasmussen <axelrasmussen@google.com>, Nadav Amit <namit@vmware.com>, Andrea Arcangeli <aarcange@redhat.com>, Andrew Cooper <andrew.cooper3@citrix.com>, Andy Lutomirski <luto@kernel.org>, Dave Hansen <dave.hansen@linux.intel.com>, David Hildenbrand <david@redhat.com>, Peter Xu <peterx@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, Yu Zhao <yuzhao@google.com>, Nick Piggin <npiggin@gmail.com>
+In-Reply-To: <20220718120212.3180-1-namit@vmware.com>
+References: <20220718120212.3180-1-namit@vmware.com>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+From: Nadav Amit <namit@vmware.com>
+
+The next patches introduce relaxed TLB flushes for x86, which would
+require a full TLB flush upon spurious page-fault. If a spurious
+page-fault occurs on x86, check if the local TLB generation is out of
+sync and perform a TLB flush if needed.
+
+Cc: Andrea Arcangeli <aarcange@redhat.com>
+Cc: Andrew Cooper <andrew.cooper3@citrix.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Dave Hansen <dave.hansen@linux.intel.com>
+Cc: David Hildenbrand <david@redhat.com>
+Cc: Peter Xu <peterx@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Will Deacon <will@kernel.org>
+Cc: Yu Zhao <yuzhao@google.com>
+Cc: Nick Piggin <npiggin@gmail.com>
+Signed-off-by: Nadav Amit <namit@vmware.com>
+---
+ arch/x86/include/asm/pgtable.h |  4 +++-
+ arch/x86/mm/tlb.c              | 17 +++++++++++++++++
+ 2 files changed, 20 insertions(+), 1 deletion(-)
+
+diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
+index 111111111..111111111 100644
+--- a/arch/x86/include/asm/pgtable.h
++++ b/arch/x86/include/asm/pgtable.h
+@@ -1080,7 +1080,9 @@ static inline void ptep_set_wrprotect(struct mm_struct *mm,
+ 	clear_bit(_PAGE_BIT_RW, (unsigned long *)&ptep->pte);
+ }
+ 
+-#define flush_tlb_fix_spurious_fault(vma, address) do { } while (0)
++extern void flush_tlb_fix_spurious_fault(struct vm_area_struct *vma,
++					 unsigned long address);
++#define flush_tlb_fix_spurious_fault flush_tlb_fix_spurious_fault
+ 
+ #define mk_pmd(page, pgprot)   pfn_pmd(page_to_pfn(page), (pgprot))
+ 
+diff --git a/arch/x86/mm/tlb.c b/arch/x86/mm/tlb.c
+index 111111111..111111111 100644
+--- a/arch/x86/mm/tlb.c
++++ b/arch/x86/mm/tlb.c
+@@ -955,6 +955,23 @@ static void put_flush_tlb_info(void)
+ #endif
+ }
+ 
++void flush_tlb_fix_spurious_fault(struct vm_area_struct *vma,
++				  unsigned long address)
++{
++	u32 loaded_mm_asid = this_cpu_read(cpu_tlbstate.loaded_mm_asid);
++	u64 mm_tlb_gen = atomic64_read(&vma->vm_mm->context.tlb_gen);
++	u64 local_tlb_gen = this_cpu_read(cpu_tlbstate.ctxs[loaded_mm_asid].tlb_gen);
++	struct flush_tlb_info *info;
++
++	if (local_tlb_gen == mm_tlb_gen)
++		return;
++
++	preempt_disable();
++	info = get_flush_tlb_info(NULL, 0, TLB_FLUSH_ALL, 0, false, 0);
++	flush_tlb_func(info);
++	preempt_enable();
++}
++
+ void flush_tlb_mm_range(struct mm_struct *mm, unsigned long start,
+ 				unsigned long end, unsigned int stride_shift,
+ 				bool freed_tables)
+
+-- 
+
+2.37.1
+

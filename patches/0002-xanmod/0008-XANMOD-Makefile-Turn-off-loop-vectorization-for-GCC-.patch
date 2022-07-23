@@ -10,10 +10,10 @@ Signed-off-by: Alexandre Frade <kernel@xanmod.org>
  1 file changed, 1 insertion(+)
 
 diff --git a/Makefile b/Makefile
-index 61741e9d9c6e..ea1b9bf14d49 100644
+index 1111111..1111111 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -761,6 +761,7 @@ ifdef CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE
+@@ -757,6 +757,7 @@ ifdef CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE
  KBUILD_CFLAGS += -O2
  else ifdef CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3
  KBUILD_CFLAGS += -O3

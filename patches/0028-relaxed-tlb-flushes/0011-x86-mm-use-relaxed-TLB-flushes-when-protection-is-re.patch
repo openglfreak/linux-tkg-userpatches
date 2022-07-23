@@ -1,0 +1,92 @@
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH RFC 11/14] x86/mm: use relaxed TLB flushes when protection is removed
+From: Nadav Amit <nadav.amit@gmail.com>
+Date: Mon, 18 Jul 2022 05:02:09 -0700
+Message-Id: <20220718120212.3180-12-namit@vmware.com>
+To: linux-mm@kvack.org
+Cc: linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Axel Rasmussen <axelrasmussen@google.com>, Nadav Amit <namit@vmware.com>, Andrea Arcangeli <aarcange@redhat.com>, Andrew Cooper <andrew.cooper3@citrix.com>, Andy Lutomirski <luto@kernel.org>, Dave Hansen <dave.hansen@linux.intel.com>, David Hildenbrand <david@redhat.com>, Peter Xu <peterx@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, Yu Zhao <yuzhao@google.com>, Nick Piggin <npiggin@gmail.com>
+In-Reply-To: <20220718120212.3180-1-namit@vmware.com>
+References: <20220718120212.3180-1-namit@vmware.com>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+From: Nadav Amit <namit@vmware.com>
+
+When checking x86 PTE flags to determine whether a TLB flush is needed,
+determine whether a relaxed TLB flush is sufficient. If protection is
+added (NX removed or W added), indicate that a relaxed TLB flush would
+suffice.
+
+Cc: Andrea Arcangeli <aarcange@redhat.com>
+Cc: Andrew Cooper <andrew.cooper3@citrix.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Dave Hansen <dave.hansen@linux.intel.com>
+Cc: David Hildenbrand <david@redhat.com>
+Cc: Peter Xu <peterx@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Will Deacon <will@kernel.org>
+Cc: Yu Zhao <yuzhao@google.com>
+Cc: Nick Piggin <npiggin@gmail.com>
+Signed-off-by: Nadav Amit <namit@vmware.com>
+---
+ arch/x86/include/asm/tlbflush.h | 20 ++++++++++++++++----
+ 1 file changed, 16 insertions(+), 4 deletions(-)
+
+diff --git a/arch/x86/include/asm/tlbflush.h b/arch/x86/include/asm/tlbflush.h
+index 111111111..111111111 100644
+--- a/arch/x86/include/asm/tlbflush.h
++++ b/arch/x86/include/asm/tlbflush.h
+@@ -271,18 +271,23 @@ static inline enum pte_flush_type pte_flags_flush_type(unsigned long oldflags,
+ 	 * dirty/access bit if needed without a fault.
+ 	 */
+ 	const pteval_t flush_on_clear = _PAGE_DIRTY | _PAGE_PRESENT |
+-					_PAGE_ACCESSED;
++					_PAGE_ACCESSED | _PAGE_RW;
++	const pteval_t flush_on_set = _PAGE_NX;
++	const pteval_t flush_on_set_relaxed = _PAGE_RW;
++	const pteval_t flush_on_clear_relaxed = _PAGE_NX;
+ 	const pteval_t software_flags = _PAGE_SOFTW1 | _PAGE_SOFTW2 |
+ 					_PAGE_SOFTW3 | _PAGE_SOFTW4;
+-	const pteval_t flush_on_change = _PAGE_RW | _PAGE_USER | _PAGE_PWT |
++	const pteval_t flush_on_change = _PAGE_USER | _PAGE_PWT |
+ 			  _PAGE_PCD | _PAGE_PSE | _PAGE_GLOBAL | _PAGE_PAT |
+ 			  _PAGE_PAT_LARGE | _PAGE_PKEY_BIT0 | _PAGE_PKEY_BIT1 |
+-			  _PAGE_PKEY_BIT2 | _PAGE_PKEY_BIT3 | _PAGE_NX;
++			  _PAGE_PKEY_BIT2 | _PAGE_PKEY_BIT3;
+ 	unsigned long diff = oldflags ^ newflags;
+ 
+ 	BUILD_BUG_ON(flush_on_clear & software_flags);
+ 	BUILD_BUG_ON(flush_on_clear & flush_on_change);
+ 	BUILD_BUG_ON(flush_on_change & software_flags);
++	BUILD_BUG_ON(flush_on_change & flush_on_clear_relaxed);
++	BUILD_BUG_ON(flush_on_change & flush_on_set_relaxed);
+ 
+ 	/* Ignore software flags */
+ 	diff &= ~software_flags;
+@@ -301,9 +306,16 @@ static inline enum pte_flush_type pte_flags_flush_type(unsigned long oldflags,
+ 	if (diff & flush_on_change)
+ 		return PTE_FLUSH_STRICT;
+ 
++	if (diff & oldflags & flush_on_clear_relaxed)
++		return PTE_FLUSH_RELAXED;
++
++	if (diff & newflags & flush_on_set_relaxed)
++		return PTE_FLUSH_RELAXED;
++
+ 	/* Ensure there are no flags that were left behind */
+ 	if (IS_ENABLED(CONFIG_DEBUG_VM) &&
+-	    (diff & ~(flush_on_clear | software_flags | flush_on_change))) {
++	    (diff & ~(flush_on_clear | flush_on_set |
++		      software_flags | flush_on_change))) {
+ 		VM_WARN_ON_ONCE(1);
+ 		return PTE_FLUSH_STRICT;
+ 	}
+
+-- 
+
+2.37.1
+

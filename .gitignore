@@ -1,4 +1,6 @@
 /*.*patch
+/*.*revert
 *.*_
 *~
 *.bak
+/patches/**/*_

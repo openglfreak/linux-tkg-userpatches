@@ -1,0 +1,91 @@
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH RFC 5/14] x86/mm: check exec permissions on fault
+From: Nadav Amit <nadav.amit@gmail.com>
+Date: Mon, 18 Jul 2022 05:02:03 -0700
+Message-Id: <20220718120212.3180-6-namit@vmware.com>
+To: linux-mm@kvack.org
+Cc: linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Axel Rasmussen <axelrasmussen@google.com>, Nadav Amit <namit@vmware.com>, Andrea Arcangeli <aarcange@redhat.com>, Andrew Cooper <andrew.cooper3@citrix.com>, Andy Lutomirski <luto@kernel.org>, Dave Hansen <dave.hansen@linux.intel.com>, David Hildenbrand <david@redhat.com>, Peter Xu <peterx@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, Yu Zhao <yuzhao@google.com>, Nick Piggin <npiggin@gmail.com>, x86@kernel.org
+In-Reply-To: <20220718120212.3180-1-namit@vmware.com>
+References: <20220718120212.3180-1-namit@vmware.com>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+From: Nadav Amit <namit@vmware.com>
+
+access_error() currently does not check for execution permission
+violation. As a result, spurious page-faults due to execution permission
+violation cause SIGSEGV.
+
+It appears not to be an issue so far, but the next patches avoid TLB
+flushes on permission promotion, which can lead to this scenario. nodejs
+for instance crashes when TLB flush is avoided on permission promotion.
+
+Add a check to prevent access_error() from returning mistakenly that
+spurious page-faults due to instruction fetch are a reason for an access
+error.
+
+It is assumed that error code bits of "instruction fetch" and "write" in
+the hardware error code are mutual exclusive, and the change assumes so.
+However, to be on the safe side, especially if hypervisors misbehave,
+assert this is the case and warn otherwise.
+
+Cc: Andrea Arcangeli <aarcange@redhat.com>
+Cc: Andrew Cooper <andrew.cooper3@citrix.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Dave Hansen <dave.hansen@linux.intel.com>
+Cc: David Hildenbrand <david@redhat.com>
+Cc: Peter Xu <peterx@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Will Deacon <will@kernel.org>
+Cc: Yu Zhao <yuzhao@google.com>
+Cc: Nick Piggin <npiggin@gmail.com>
+Cc: x86@kernel.org
+Signed-off-by: Nadav Amit <namit@vmware.com>
+---
+ arch/x86/mm/fault.c | 22 ++++++++++++++++++++--
+ 1 file changed, 20 insertions(+), 2 deletions(-)
+
+diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
+index 111111111..111111111 100644
+--- a/arch/x86/mm/fault.c
++++ b/arch/x86/mm/fault.c
+@@ -1107,10 +1107,28 @@ access_error(unsigned long error_code, struct vm_area_struct *vma)
+ 				       (error_code & X86_PF_INSTR), foreign))
+ 		return 1;
+ 
+-	if (error_code & X86_PF_WRITE) {
++	if (error_code & (X86_PF_WRITE | X86_PF_INSTR)) {
++		/*
++		 * CPUs are not expected to set the two error code bits
++		 * together, but to ensure that hypervisors do not misbehave,
++		 * run an additional sanity check.
++		 */
++		if ((error_code & (X86_PF_WRITE|X86_PF_INSTR)) ==
++					(X86_PF_WRITE|X86_PF_INSTR)) {
++			WARN_ON_ONCE(1);
++			return 1;
++		}
++
+ 		/* write, present and write, not present: */
+-		if (unlikely(!(vma->vm_flags & VM_WRITE)))
++		if ((error_code & X86_PF_WRITE) &&
++		    unlikely(!(vma->vm_flags & VM_WRITE)))
++			return 1;
++
++		/* exec, present and exec, not present: */
++		if ((error_code & X86_PF_INSTR) &&
++		    unlikely(!(vma->vm_flags & VM_EXEC)))
+ 			return 1;
++
+ 		return 0;
+ 	}
+ 
+
+-- 
+
+2.37.1
+

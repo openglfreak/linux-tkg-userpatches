@@ -1,0 +1,73 @@
+From 2e0c14b679afc40440fde9b124a7ae50d73f7ebc Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Sat, 23 Jul 2022 11:48:35 +0200
+Subject: [PATCH 2/2] sched/core: Disable cache clustering.
+
+Taken from https://gist.github.com/syldrathecat/6919462dde66c0e89849d987fa40429a,
+slightly modified.
+---
+ arch/x86/kernel/smpboot.c | 24 ++----------------------
+ kernel/sched/core.c       |  5 +----
+ 2 files changed, 3 insertions(+), 26 deletions(-)
+
+diff --git a/arch/x86/kernel/smpboot.c b/arch/x86/kernel/smpboot.c
+index 111111111..111111111 100644
+--- a/arch/x86/kernel/smpboot.c
++++ b/arch/x86/kernel/smpboot.c
+@@ -536,27 +536,7 @@ static const struct x86_cpu_id intel_cod_cpu[] = {
+ 
+ static bool match_llc(struct cpuinfo_x86 *c, struct cpuinfo_x86 *o)
+ {
+-	const struct x86_cpu_id *id = x86_match_cpu(intel_cod_cpu);
+-	int cpu1 = c->cpu_index, cpu2 = o->cpu_index;
+-	bool intel_snc = id && id->driver_data;
+-
+-	/* Do not match if we do not have a valid APICID for cpu: */
+-	if (per_cpu(cpu_llc_id, cpu1) == BAD_APICID)
+-		return false;
+-
+-	/* Do not match if LLC id does not match: */
+-	if (per_cpu(cpu_llc_id, cpu1) != per_cpu(cpu_llc_id, cpu2))
+-		return false;
+-
+-	/*
+-	 * Allow the SNC topology without warning. Return of false
+-	 * means 'c' does not share the LLC of 'o'. This will be
+-	 * reflected to userspace.
+-	 */
+-	if (match_pkg(c, o) && !topology_same_node(c, o) && intel_snc)
+-		return false;
+-
+-	return topology_sane(c, o, "llc");
++	return true;
+ }
+ 
+ 
+@@ -713,7 +693,7 @@ void set_cpu_sibling_map(int cpu)
+ /* maps the cpu to the sched domain representing multi-core */
+ const struct cpumask *cpu_coregroup_mask(int cpu)
+ {
+-	return cpu_llc_shared_mask(cpu);
++	return cpu_llc_shared_mask(0);
+ }
+ 
+ const struct cpumask *cpu_clustergroup_mask(int cpu)
+diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+index 111111111..111111111 100644
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -3814,10 +3814,7 @@ void wake_up_if_idle(int cpu)
+ 
+ bool cpus_share_cache(int this_cpu, int that_cpu)
+ {
+-	if (this_cpu == that_cpu)
+-		return true;
+-
+-	return per_cpu(sd_llc_id, this_cpu) == per_cpu(sd_llc_id, that_cpu);
++	return true;
+ }
+ 
+ static inline bool ttwu_queue_cond(int cpu)
+-- 
+2.37.1
+

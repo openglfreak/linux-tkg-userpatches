@@ -10,10 +10,10 @@ Signed-off-by: Alexandre Frade <kernel@xanmod.org>
  1 file changed, 1 insertion(+)
 
 diff --git a/include/linux/blkdev.h b/include/linux/blkdev.h
-index d3afea47ade6..29334d6e7c74 100644
+index 1111111..1111111 100644
 --- a/include/linux/blkdev.h
 +++ b/include/linux/blkdev.h
-@@ -606,6 +606,7 @@ struct request_queue {
+@@ -578,6 +578,7 @@ struct request_queue {
  
  #define QUEUE_FLAG_MQ_DEFAULT	((1 << QUEUE_FLAG_IO_STAT) |		\
  				 (1 << QUEUE_FLAG_SAME_COMP) |		\

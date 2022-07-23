@@ -417,10 +417,10 @@ Signed-off-by: Ankur Arora <ankur.a.arora@oracle.com>
  4 files changed, 35 insertions(+), 3 deletions(-)
 
 diff --git a/fs/hugetlbfs/inode.c b/fs/hugetlbfs/inode.c
-index cdfb1ae78a3f..44cee9d30035 100644
+index 1111111..1111111 100644
 --- a/fs/hugetlbfs/inode.c
 +++ b/fs/hugetlbfs/inode.c
-@@ -636,6 +636,7 @@ static long hugetlbfs_fallocate(struct file *file, int mode, loff_t offset,
+@@ -688,6 +688,7 @@ static long hugetlbfs_fallocate(struct file *file, int mode, loff_t offset,
  	loff_t hpage_size = huge_page_size(h);
  	unsigned long hpage_shift = huge_page_shift(h);
  	pgoff_t start, index, end;
@@ -428,7 +428,7 @@ index cdfb1ae78a3f..44cee9d30035 100644
  	int error;
  	u32 hash;
  
-@@ -653,6 +654,9 @@ static long hugetlbfs_fallocate(struct file *file, int mode, loff_t offset,
+@@ -705,6 +706,9 @@ static long hugetlbfs_fallocate(struct file *file, int mode, loff_t offset,
  	start = offset >> hpage_shift;
  	end = (offset + len + hpage_size - 1) >> hpage_shift;
  
@@ -438,7 +438,7 @@ index cdfb1ae78a3f..44cee9d30035 100644
  	inode_lock(inode);
  
  	/* We need to check rlimit even when FALLOC_FL_KEEP_SIZE */
-@@ -731,7 +735,8 @@ static long hugetlbfs_fallocate(struct file *file, int mode, loff_t offset,
+@@ -783,7 +787,8 @@ static long hugetlbfs_fallocate(struct file *file, int mode, loff_t offset,
  			error = PTR_ERR(page);
  			goto out;
  		}
@@ -449,12 +449,12 @@ index cdfb1ae78a3f..44cee9d30035 100644
  		error = huge_add_to_page_cache(page, mapping, index);
  		if (unlikely(error)) {
 diff --git a/mm/gup.c b/mm/gup.c
-index 886d6148d3d0..930944e0c6eb 100644
+index 1111111..1111111 100644
 --- a/mm/gup.c
 +++ b/mm/gup.c
-@@ -933,6 +933,13 @@ static int faultin_page(struct vm_area_struct *vma,
- 		 */
- 		fault_flags |= FAULT_FLAG_TRIED;
+@@ -964,6 +964,13 @@ static int faultin_page(struct vm_area_struct *vma,
+ 			*locked = 0;
+ 		return -EBUSY;
  	}
 +	if (*flags & FOLL_HINT_BULK) {
 +		/*
@@ -464,9 +464,9 @@ index 886d6148d3d0..930944e0c6eb 100644
 +		fault_flags |= FAULT_FLAG_UNCACHED;
 +	}
  
- 	ret = handle_mm_fault(vma, address, fault_flags, NULL);
- 	if (ret & VM_FAULT_ERROR) {
-@@ -1100,6 +1107,19 @@ static long __get_user_pages(struct mm_struct *mm,
+ 	/*
+ 	 * The VM_FAULT_WRITE bit tells us that do_wp_page has broken COW when
+@@ -1116,6 +1123,19 @@ static long __get_user_pages(struct mm_struct *mm,
  	if (!(gup_flags & FOLL_FORCE))
  		gup_flags |= FOLL_NUMA;
  
@@ -487,10 +487,10 @@ index 886d6148d3d0..930944e0c6eb 100644
  		struct page *page;
  		unsigned int foll_flags = gup_flags;
 diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-index ffd4b07285ba..2d239967a8a1 100644
+index 1111111..1111111 100644
 --- a/mm/huge_memory.c
 +++ b/mm/huge_memory.c
-@@ -600,7 +600,7 @@ static vm_fault_t __do_huge_pmd_anonymous_page(struct vm_fault *vmf,
+@@ -598,7 +598,7 @@ static vm_fault_t __do_huge_pmd_anonymous_page(struct vm_fault *vmf,
  	pgtable_t pgtable;
  	unsigned long haddr = vmf->address & HPAGE_PMD_MASK;
  	vm_fault_t ret = 0;
@@ -500,10 +500,10 @@ index ffd4b07285ba..2d239967a8a1 100644
  	VM_BUG_ON_PAGE(!PageCompound(page), page);
  
 diff --git a/mm/hugetlb.c b/mm/hugetlb.c
-index a920b1133cdb..35b643df5854 100644
+index 1111111..1111111 100644
 --- a/mm/hugetlb.c
 +++ b/mm/hugetlb.c
-@@ -4874,7 +4874,7 @@ static vm_fault_t hugetlb_no_page(struct mm_struct *mm,
+@@ -5489,7 +5489,7 @@ static vm_fault_t hugetlb_no_page(struct mm_struct *mm,
  	spinlock_t *ptl;
  	unsigned long haddr = address & huge_page_mask(h);
  	bool new_page, new_pagecache_page = false;
@@ -512,7 +512,7 @@ index a920b1133cdb..35b643df5854 100644
  
  	/*
  	 * Currently, we are forced to kill the process in the event the
-@@ -5503,6 +5503,13 @@ long follow_hugetlb_page(struct mm_struct *mm, struct vm_area_struct *vma,
+@@ -6190,6 +6190,13 @@ long follow_hugetlb_page(struct mm_struct *mm, struct vm_area_struct *vma,
  				 */
  				fault_flags |= FAULT_FLAG_TRIED;
  			}

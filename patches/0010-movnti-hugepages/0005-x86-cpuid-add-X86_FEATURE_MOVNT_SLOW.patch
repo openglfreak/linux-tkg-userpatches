@@ -181,22 +181,22 @@ Signed-off-by: Ankur Arora <ankur.a.arora@oracle.com>
  5 files changed, 21 insertions(+)
 
 diff --git a/arch/x86/include/asm/cpufeatures.h b/arch/x86/include/asm/cpufeatures.h
-index d0ce5cfd3ac1..69191f175c2c 100644
+index 1111111..1111111 100644
 --- a/arch/x86/include/asm/cpufeatures.h
 +++ b/arch/x86/include/asm/cpufeatures.h
-@@ -294,6 +294,7 @@
- #define X86_FEATURE_PER_THREAD_MBA	(11*32+ 7) /* "" Per-thread Memory Bandwidth Allocation */
- #define X86_FEATURE_SGX1		(11*32+ 8) /* "" Basic SGX */
- #define X86_FEATURE_SGX2		(11*32+ 9) /* "" SGX Enclave Dynamic Memory Management (EDMM) */
-+#define X86_FEATURE_MOVNT_SLOW		(11*32+10) /* MOVNT is slow. (see check_movnt_quirks()) */
+@@ -302,6 +302,7 @@
+ #define X86_FEATURE_RETPOLINE_LFENCE	(11*32+13) /* "" Use LFENCE for Spectre variant 2 */
+ #define X86_FEATURE_RETHUNK		(11*32+14) /* "" Use REturn THUNK */
+ #define X86_FEATURE_UNRET		(11*32+15) /* "" AMD BTB untrain return */
++#define X86_FEATURE_MOVNT_SLOW		(11*32+16) /* MOVNT is slow. (see check_movnt_quirks()) */
  
  /* Intel-defined CPU features, CPUID level 0x00000007:1 (EAX), word 12 */
  #define X86_FEATURE_AVX_VNNI		(12*32+ 4) /* AVX VNNI instructions */
 diff --git a/arch/x86/kernel/cpu/amd.c b/arch/x86/kernel/cpu/amd.c
-index 2131af9f2fa2..5de83c6fe526 100644
+index 1111111..1111111 100644
 --- a/arch/x86/kernel/cpu/amd.c
 +++ b/arch/x86/kernel/cpu/amd.c
-@@ -915,6 +915,8 @@ static void init_amd(struct cpuinfo_x86 *c)
+@@ -922,6 +922,8 @@ static void init_amd(struct cpuinfo_x86 *c)
  	if (c->x86 >= 0x10)
  		set_cpu_cap(c, X86_FEATURE_REP_GOOD);
  
@@ -206,12 +206,12 @@ index 2131af9f2fa2..5de83c6fe526 100644
  	c->apicid = hard_smp_processor_id();
  
 diff --git a/arch/x86/kernel/cpu/bugs.c b/arch/x86/kernel/cpu/bugs.c
-index ecfca3bbcd96..4e1558d22a5f 100644
+index 1111111..1111111 100644
 --- a/arch/x86/kernel/cpu/bugs.c
 +++ b/arch/x86/kernel/cpu/bugs.c
-@@ -84,6 +84,21 @@ EXPORT_SYMBOL_GPL(mds_idle_clear);
-  */
- DEFINE_STATIC_KEY_FALSE(switch_mm_cond_l1d_flush);
+@@ -117,6 +117,21 @@ DEFINE_STATIC_KEY_FALSE(switch_mm_cond_l1d_flush);
+ DEFINE_STATIC_KEY_FALSE(mmio_stale_data_clear);
+ EXPORT_SYMBOL_GPL(mmio_stale_data_clear);
  
 +void check_movnt_quirks(struct cpuinfo_x86 *c)
 +{
@@ -232,10 +232,10 @@ index ecfca3bbcd96..4e1558d22a5f 100644
  {
  	identify_boot_cpu();
 diff --git a/arch/x86/kernel/cpu/cpu.h b/arch/x86/kernel/cpu/cpu.h
-index 95521302630d..72e3715d63ea 100644
+index 1111111..1111111 100644
 --- a/arch/x86/kernel/cpu/cpu.h
 +++ b/arch/x86/kernel/cpu/cpu.h
-@@ -83,4 +83,6 @@ extern void update_srbds_msr(void);
+@@ -85,4 +85,6 @@ extern void update_srbds_msr(void);
  
  extern u64 x86_read_arch_cap_msr(void);
  
@@ -243,10 +243,10 @@ index 95521302630d..72e3715d63ea 100644
 +
  #endif /* ARCH_X86_CPU_H */
 diff --git a/arch/x86/kernel/cpu/intel.c b/arch/x86/kernel/cpu/intel.c
-index 8321c43554a1..36a2f8e88b74 100644
+index 1111111..1111111 100644
 --- a/arch/x86/kernel/cpu/intel.c
 +++ b/arch/x86/kernel/cpu/intel.c
-@@ -666,6 +666,7 @@ static void init_intel(struct cpuinfo_x86 *c)
+@@ -701,6 +701,7 @@ static void init_intel(struct cpuinfo_x86 *c)
  		c->x86_cache_alignment = c->x86_clflush_size * 2;
  	if (c->x86 == 6)
  		set_cpu_cap(c, X86_FEATURE_REP_GOOD);

@@ -1,0 +1,65 @@
+From a826d1274cc6cdc3e86fc952b2cd089d8c3e9d46 Mon Sep 17 00:00:00 2001
+From: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+Date: Wed, 13 May 2020 13:10:01 +0300
+Subject: [PATCH 46/57] drivers: base: Make
+ device_{add|remove}_class_symlinks() public
+
+When updating the /sys/devices/pci* entries affected by changes in the PCI
+topology, their symlinks in /sys/bus/pci/devices/* must also be rebuilt.
+
+Moving device_add_class_symlinks() and device_remove_class_symlinks() to a
+public API allows the PCI subsystem to update the sysfs without destroying
+the working affected devices.
+
+Signed-off-by: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+---
+ drivers/base/core.c        | 6 ++++--
+ include/linux/device/bus.h | 2 ++
+ 2 files changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/base/core.c b/drivers/base/core.c
+index 111111111..111111111 100644
+--- a/drivers/base/core.c
++++ b/drivers/base/core.c
+@@ -3132,7 +3132,7 @@ static void cleanup_glue_dir(struct device *dev, struct kobject *glue_dir)
+ 	mutex_unlock(&gdp_mutex);
+ }
+ 
+-static int device_add_class_symlinks(struct device *dev)
++int device_add_class_symlinks(struct device *dev)
+ {
+ 	struct device_node *of_node = dev_of_node(dev);
+ 	int error;
+@@ -3183,8 +3183,9 @@ static int device_add_class_symlinks(struct device *dev)
+ 	sysfs_remove_link(&dev->kobj, "of_node");
+ 	return error;
+ }
++EXPORT_SYMBOL_GPL(device_add_class_symlinks);
+ 
+-static void device_remove_class_symlinks(struct device *dev)
++void device_remove_class_symlinks(struct device *dev)
+ {
+ 	if (dev_of_node(dev))
+ 		sysfs_remove_link(&dev->kobj, "of_node");
+@@ -3201,6 +3202,7 @@ static void device_remove_class_symlinks(struct device *dev)
+ #endif
+ 	sysfs_delete_link(&dev->class->p->subsys.kobj, &dev->kobj, dev_name(dev));
+ }
++EXPORT_SYMBOL_GPL(device_remove_class_symlinks);
+ 
+ /**
+  * dev_set_name - set a device name
+diff --git a/include/linux/device/bus.h b/include/linux/device/bus.h
+index 111111111..111111111 100644
+--- a/include/linux/device/bus.h
++++ b/include/linux/device/bus.h
+@@ -258,6 +258,8 @@ void bus_sort_breadthfirst(struct bus_type *bus,
+ 			   int (*compare)(const struct device *a,
+ 					  const struct device *b));
+ extern int bus_add_device(struct device *dev);
++extern int device_add_class_symlinks(struct device *dev);
++extern void device_remove_class_symlinks(struct device *dev);
+ 
+ /*
+  * Bus notifiers: Get notified of addition/removal of devices
+

@@ -1,0 +1,44 @@
+From dac7385cee5a679be5ba15b6dc0cc83f9d6c6bce Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Thu, 16 Jun 2022 23:10:55 +0200
+Subject: [PATCH 2/6] amdgpu: Spin faster in wait_for_no_pipes_pending.
+
+---
+ drivers/gpu/drm/amd/display/dc/core/dc.c | 9 +++++----
+ 1 file changed, 5 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/gpu/drm/amd/display/dc/core/dc.c b/drivers/gpu/drm/amd/display/dc/core/dc.c
+index 111111111..111111111 100644
+--- a/drivers/gpu/drm/amd/display/dc/core/dc.c
++++ b/drivers/gpu/drm/amd/display/dc/core/dc.c
+@@ -1174,13 +1174,14 @@ static void wait_for_no_pipes_pending(struct dc *dc, struct dc_state *context)
+ 			continue;
+ 
+ 		/* Timeout 100 ms */
+-		while (count < 100000) {
++		while (count < 100100) {
+ 			/* Must set to false to start with, due to OR in update function */
+ 			pipe->plane_state->status.is_flip_pending = false;
+ 			dc->hwss.update_pending_status(pipe);
+ 			if (!pipe->plane_state->status.is_flip_pending)
+ 				break;
+-			udelay(1);
++			if (count >= 100)
++				udelay(1);
+ 			count++;
+ 		}
+ 		ASSERT(!pipe->plane_state->status.is_flip_pending);
+@@ -3718,8 +3719,8 @@ void dc_hardware_release(struct dc *dc)
+ /*
+  *****************************************************************************
+  * Function: dc_is_dmub_outbox_supported -
+- * 
+- * @brief 
++ *
++ * @brief
+  *      Checks whether DMUB FW supports outbox notifications, if supported
+  *		DM should register outbox interrupt prior to actually enabling interrupts
+  *		via dc_enable_dmub_outbox
+-- 
+2.37.1
+

@@ -1,0 +1,57 @@
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH RFC 7/14] mm: do fix spurious page-faults for instruction faults
+From: Nadav Amit <nadav.amit@gmail.com>
+Date: Mon, 18 Jul 2022 05:02:05 -0700
+Message-Id: <20220718120212.3180-8-namit@vmware.com>
+To: linux-mm@kvack.org
+Cc: linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Axel Rasmussen <axelrasmussen@google.com>, Nadav Amit <namit@vmware.com>, Andrea Arcangeli <aarcange@redhat.com>, Andrew Cooper <andrew.cooper3@citrix.com>, Andy Lutomirski <luto@kernel.org>, Dave Hansen <dave.hansen@linux.intel.com>, David Hildenbrand <david@redhat.com>, Peter Xu <peterx@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, Yu Zhao <yuzhao@google.com>, Nick Piggin <npiggin@gmail.com>
+In-Reply-To: <20220718120212.3180-1-namit@vmware.com>
+References: <20220718120212.3180-1-namit@vmware.com>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+From: Nadav Amit <namit@vmware.com>
+
+The next patches might cause spurious instruction faults on x86. To
+prevent them from occurring too much, call
+flush_tlb_fix_spurious_fault() for page-faults on code fetching as well.
+The callee is expected to do a full flush, or whatever is necessary to
+avoid further TLB flushes.
+
+Cc: Andrea Arcangeli <aarcange@redhat.com>
+Cc: Andrew Cooper <andrew.cooper3@citrix.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Dave Hansen <dave.hansen@linux.intel.com>
+Cc: David Hildenbrand <david@redhat.com>
+Cc: Peter Xu <peterx@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Will Deacon <will@kernel.org>
+Cc: Yu Zhao <yuzhao@google.com>
+Cc: Nick Piggin <npiggin@gmail.com>
+Signed-off-by: Nadav Amit <namit@vmware.com>
+---
+ mm/memory.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/mm/memory.c b/mm/memory.c
+index 111111111..111111111 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -4927,7 +4927,7 @@ static vm_fault_t handle_pte_fault(struct vm_fault *vmf)
+ 		 * This still avoids useless tlb flushes for .text page faults
+ 		 * with threads.
+ 		 */
+-		if (vmf->flags & FAULT_FLAG_WRITE)
++		if (vmf->flags & (FAULT_FLAG_WRITE|FAULT_FLAG_INSTRUCTION))
+ 			flush_tlb_fix_spurious_fault(vmf->vma, vmf->address);
+ 	}
+ unlock:
+
+-- 
+
+2.37.1
+

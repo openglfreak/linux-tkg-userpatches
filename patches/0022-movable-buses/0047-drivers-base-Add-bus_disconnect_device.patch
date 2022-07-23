@@ -1,0 +1,84 @@
+From 1dd1ae14352b81c43ae1139078e79fbb7d7c9c20 Mon Sep 17 00:00:00 2001
+From: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+Date: Wed, 13 May 2020 13:10:07 +0300
+Subject: [PATCH 47/57] drivers: base: Add bus_disconnect_device()
+
+Add bus_disconnect_device(), which is similar to bus_remove_device(), but
+it doesn't detach the device from its driver, so it can be reconnected to
+the same or another bus later.
+
+This is a yet another preparation to hotplugging large PCIe bridges, which
+may entail changes in BDF addresses of working devices due to movable bus
+numbers. Changed addresses require rebuilding the affected entries in
+/sys/bus/pci and /proc/bus/pci.
+
+Using bus_disconnect_device()+bus_add_device() during PCI rescan allows the
+drivers to work with their devices uninterruptedly, regardless of changes
+in PCI addresses.
+
+Signed-off-by: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+---
+ drivers/base/bus.c         | 36 ++++++++++++++++++++++++++++++++++++
+ include/linux/device/bus.h |  1 +
+ 2 files changed, 37 insertions(+)
+
+diff --git a/drivers/base/bus.c b/drivers/base/bus.c
+index 111111111..111111111 100644
+--- a/drivers/base/bus.c
++++ b/drivers/base/bus.c
+@@ -494,6 +494,42 @@ void bus_probe_device(struct device *dev)
+ 	mutex_unlock(&bus->p->mutex);
+ }
+ 
++/**
++ * bus_disconnect_device - disconnect device from bus,
++ * but don't detach it from driver
++ * @dev: device to be disconnected
++ *
++ * - Remove device from all interfaces.
++ * - Remove symlink from bus' directory.
++ * - Delete device from bus's list.
++ */
++void bus_disconnect_device(struct device *dev)
++{
++	struct bus_type *bus = dev->bus;
++	struct subsys_interface *sif;
++
++	if (!bus)
++		return;
++
++	mutex_lock(&bus->p->mutex);
++	list_for_each_entry(sif, &bus->p->interfaces, node)
++		if (sif->remove_dev)
++			sif->remove_dev(dev, sif);
++	mutex_unlock(&bus->p->mutex);
++
++	sysfs_remove_link(&dev->kobj, "subsystem");
++	sysfs_remove_link(&dev->bus->p->devices_kset->kobj,
++			  dev_name(dev));
++	device_remove_groups(dev, dev->bus->dev_groups);
++	if (klist_node_attached(&dev->p->knode_bus))
++		klist_del(&dev->p->knode_bus);
++
++	pr_debug("bus: '%s': remove device %s\n",
++		 dev->bus->name, dev_name(dev));
++	bus_put(dev->bus);
++}
++EXPORT_SYMBOL_GPL(bus_disconnect_device);
++
+ /**
+  * bus_remove_device - remove device from bus
+  * @dev: device to be removed
+diff --git a/include/linux/device/bus.h b/include/linux/device/bus.h
+index 111111111..111111111 100644
+--- a/include/linux/device/bus.h
++++ b/include/linux/device/bus.h
+@@ -258,6 +258,7 @@ void bus_sort_breadthfirst(struct bus_type *bus,
+ 			   int (*compare)(const struct device *a,
+ 					  const struct device *b));
+ extern int bus_add_device(struct device *dev);
++extern void bus_disconnect_device(struct device *dev);
+ extern int device_add_class_symlinks(struct device *dev);
+ extern void device_remove_class_symlinks(struct device *dev);
+ 
+

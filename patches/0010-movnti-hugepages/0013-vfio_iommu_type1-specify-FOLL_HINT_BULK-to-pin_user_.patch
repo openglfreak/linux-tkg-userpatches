@@ -114,10 +114,10 @@ Signed-off-by: Ankur Arora <ankur.a.arora@oracle.com>
  1 file changed, 3 insertions(+)
 
 diff --git a/drivers/vfio/vfio_iommu_type1.c b/drivers/vfio/vfio_iommu_type1.c
-index 0e9217687f5c..0d45b0c6464d 100644
+index 1111111..1111111 100644
 --- a/drivers/vfio/vfio_iommu_type1.c
 +++ b/drivers/vfio/vfio_iommu_type1.c
-@@ -557,6 +557,9 @@ static int vaddr_get_pfns(struct mm_struct *mm, unsigned long vaddr,
+@@ -553,6 +553,9 @@ static int vaddr_get_pfns(struct mm_struct *mm, unsigned long vaddr,
  	if (prot & IOMMU_WRITE)
  		flags |= FOLL_WRITE;
  

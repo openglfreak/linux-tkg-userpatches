@@ -1,0 +1,37 @@
+From 59097cd114f3dbbcecb7f24dbd87e3dff6d73ff4 Mon Sep 17 00:00:00 2001
+From: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+Date: Thu, 4 Mar 2021 21:53:26 +0300
+Subject: [PATCH 40/57] powerpc/powernv/pci: Link bus PEs with root PE only
+
+Commit dc3d8f85bb57 ("powerpc/powernv/pci: Re-work bus PE configuration")
+adds more links between bus PEs: not only each PE to the root bus, but also
+to every "parent" PE. While *looking* correct, this also introduces some
+silent glitches on PCI: assumed pauses in I/O, dropping a bunch of packets,
+making the driver "lose" its device.
+
+So revert the mentioned commit partially: the refactoring part remains, but
+bus PE assignment now works as before.
+
+Signed-off-by: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+---
+ arch/powerpc/platforms/powernv/pci-ioda.c | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/arch/powerpc/platforms/powernv/pci-ioda.c b/arch/powerpc/platforms/powernv/pci-ioda.c
+index 111111111..111111111 100644
+--- a/arch/powerpc/platforms/powernv/pci-ioda.c
++++ b/arch/powerpc/platforms/powernv/pci-ioda.c
+@@ -779,7 +779,11 @@ static int pnv_ioda_set_peltv(struct pnv_phb *phb,
+ 		struct pci_dn *pdn = pci_get_pdn(pdev);
+ 		struct pnv_ioda_pe *parent;
+ 
+-		if (pdn && pdn->pe_number != IODA_INVALID_PE) {
++		/*
++		 * Workaround: revert to behavior before dc3d8f85:
++		 * link only with root bus's PE.
++		 */
++		if (pdn && pdn->pe_number != IODA_INVALID_PE && 0 == pdev->bus->number) {
+ 			parent = &phb->ioda.pe_array[pdn->pe_number];
+ 			ret = pnv_ioda_set_one_peltv(phb, parent, pe, is_add);
+ 			if (ret)
+

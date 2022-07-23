@@ -1,0 +1,57 @@
+From 6b328cd04f5b4d3f8ccc02ce0debc0fe68e72dcd Mon Sep 17 00:00:00 2001
+From: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+Date: Wed, 13 May 2020 13:09:54 +0300
+Subject: [PATCH 45/57] drivers: base: Make bus_add_device() public
+
+Move the bus_add_device() to a public API, so it can be applied to devices
+which are temporarily detached from their buses without being destroyed.
+
+This will be used after changes in PCI topology after hotplugging a bridge:
+buses may get their numbers changed, so their child devices must be
+reattached and their sysfs and proc files recreated.
+
+Signed-off-by: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+---
+ drivers/base/base.h        | 1 -
+ drivers/base/bus.c         | 1 +
+ include/linux/device/bus.h | 2 ++
+ 3 files changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/base/base.h b/drivers/base/base.h
+index 111111111..111111111 100644
+--- a/drivers/base/base.h
++++ b/drivers/base/base.h
+@@ -127,7 +127,6 @@ static inline void auxiliary_bus_init(void) { }
+ 
+ struct kobject *virtual_device_parent(struct device *dev);
+ 
+-extern int bus_add_device(struct device *dev);
+ extern void bus_probe_device(struct device *dev);
+ extern void bus_remove_device(struct device *dev);
+ 
+diff --git a/drivers/base/bus.c b/drivers/base/bus.c
+index 111111111..111111111 100644
+--- a/drivers/base/bus.c
++++ b/drivers/base/bus.c
+@@ -468,6 +468,7 @@ int bus_add_device(struct device *dev)
+ 	bus_put(dev->bus);
+ 	return error;
+ }
++EXPORT_SYMBOL_GPL(bus_add_device);
+ 
+ /**
+  * bus_probe_device - probe drivers for a new device
+diff --git a/include/linux/device/bus.h b/include/linux/device/bus.h
+index 111111111..111111111 100644
+--- a/include/linux/device/bus.h
++++ b/include/linux/device/bus.h
+@@ -257,6 +257,8 @@ int bus_for_each_drv(struct bus_type *bus, struct device_driver *start,
+ void bus_sort_breadthfirst(struct bus_type *bus,
+ 			   int (*compare)(const struct device *a,
+ 					  const struct device *b));
++extern int bus_add_device(struct device *dev);
++
+ /*
+  * Bus notifiers: Get notified of addition/removal of devices
+  * and binding/unbinding of drivers to devices.
+

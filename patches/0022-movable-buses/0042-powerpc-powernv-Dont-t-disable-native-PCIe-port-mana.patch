@@ -1,0 +1,33 @@
+From 4c68c3acc7510a77c67ef758be7e4e943d7ea383 Mon Sep 17 00:00:00 2001
+From: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+Date: Wed, 13 May 2020 13:09:36 +0300
+Subject: [PATCH 42/57] powerpc/powernv: Dont't disable native PCIe port
+ management if EEH is off
+
+If the firmware supports bus numbers reassigning and EEH is disabled,
+the standard PCIe drivers can be activated: hotplug, AER, DPC, etc.
+
+Signed-off-by: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+---
+ arch/powerpc/platforms/powernv/pci.c | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/arch/powerpc/platforms/powernv/pci.c b/arch/powerpc/platforms/powernv/pci.c
+index 111111111..111111111 100644
+--- a/arch/powerpc/platforms/powernv/pci.c
++++ b/arch/powerpc/platforms/powernv/pci.c
+@@ -869,8 +869,12 @@ void __init pnv_pci_init(void)
+ 	 * without kernel changes (and portbus binding breaks pnv_php). The
+ 	 * other services also require some thinking about how we're going
+ 	 * to integrate them.
++	 *
++	 * But when the EEH is disabled and the kernel is allowed to reassign
++	 * bus numbers, the portdrv can work just fine.
+ 	 */
+-	pcie_ports_disabled = true;
++	if (eeh_enabled() && !pci_has_flag(PCI_REASSIGN_ALL_BUS))
++		pcie_ports_disabled = true;
+ #endif
+ 
+ 	/* Look for IODA IO-Hubs. */
+

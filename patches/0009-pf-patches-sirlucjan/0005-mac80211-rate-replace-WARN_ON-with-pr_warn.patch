@@ -47,7 +47,7 @@ Signed-off-by: Oleksandr Natalenko <oleksandr@natalenko.name>
  1 file changed, 3 insertions(+), 1 deletion(-)
 
 diff --git a/net/mac80211/rate.c b/net/mac80211/rate.c
-index 8c6416129..6d36c5eff 100644
+index 1111111..1111111 100644
 --- a/net/mac80211/rate.c
 +++ b/net/mac80211/rate.c
 @@ -664,7 +664,9 @@ static void rate_fixup_ratelist(struct ieee80211_vif *vif,
@@ -62,5 +62,5 @@ index 8c6416129..6d36c5eff 100644
  			if (!(rates[i].flags & IEEE80211_TX_RC_USE_RTS_CTS) &&
  			    info->control.use_cts_prot)
 -- 
-2.33.1.711.g9d530dc002
+2.37.1
 

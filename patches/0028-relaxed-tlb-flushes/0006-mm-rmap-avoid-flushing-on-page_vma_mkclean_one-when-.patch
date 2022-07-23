@@ -1,0 +1,76 @@
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH RFC 6/14] mm/rmap: avoid flushing on page_vma_mkclean_one() when possible
+From: Nadav Amit <nadav.amit@gmail.com>
+Date: Mon, 18 Jul 2022 05:02:04 -0700
+Message-Id: <20220718120212.3180-7-namit@vmware.com>
+To: linux-mm@kvack.org
+Cc: linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Axel Rasmussen <axelrasmussen@google.com>, Nadav Amit <namit@vmware.com>, Andrea Arcangeli <aarcange@redhat.com>, Andrew Cooper <andrew.cooper3@citrix.com>, Andy Lutomirski <luto@kernel.org>, Dave Hansen <dave.hansen@linux.intel.com>, David Hildenbrand <david@redhat.com>, Peter Xu <peterx@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, Yu Zhao <yuzhao@google.com>, Nick Piggin <npiggin@gmail.com>
+In-Reply-To: <20220718120212.3180-1-namit@vmware.com>
+References: <20220718120212.3180-1-namit@vmware.com>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+From: Nadav Amit <namit@vmware.com>
+
+x86 is capable to avoid TLB flush on clean writable entries.
+page_vma_mkclean_one() does not take advantage of this behavior. Adapt
+it.
+
+Cc: Andrea Arcangeli <aarcange@redhat.com>
+Cc: Andrew Cooper <andrew.cooper3@citrix.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Dave Hansen <dave.hansen@linux.intel.com>
+Cc: David Hildenbrand <david@redhat.com>
+Cc: Peter Xu <peterx@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Will Deacon <will@kernel.org>
+Cc: Yu Zhao <yuzhao@google.com>
+Cc: Nick Piggin <npiggin@gmail.com>
+Signed-off-by: Nadav Amit <namit@vmware.com>
+---
+ mm/rmap.c | 16 ++++++++++++----
+ 1 file changed, 12 insertions(+), 4 deletions(-)
+
+diff --git a/mm/rmap.c b/mm/rmap.c
+index 111111111..111111111 100644
+--- a/mm/rmap.c
++++ b/mm/rmap.c
+@@ -967,17 +967,25 @@ static int page_vma_mkclean_one(struct page_vma_mapped_walk *pvmw)
+ 
+ 		address = pvmw->address;
+ 		if (pvmw->pte) {
+-			pte_t entry;
++			pte_t entry, oldpte;
+ 			pte_t *pte = pvmw->pte;
+ 
+ 			if (!pte_dirty(*pte) && !pte_write(*pte))
+ 				continue;
+ 
+ 			flush_cache_page(vma, address, pte_pfn(*pte));
+-			entry = ptep_clear_flush(vma, address, pte);
+-			entry = pte_wrprotect(entry);
++			oldpte = ptep_modify_prot_start(pvmw->vma, address,
++							pte);
++
++			entry = pte_wrprotect(oldpte);
+ 			entry = pte_mkclean(entry);
+-			set_pte_at(vma->vm_mm, address, pte, entry);
++
++			if (pte_needs_flush(oldpte, entry) ||
++			    mm_tlb_flush_pending(vma->vm_mm))
++				flush_tlb_page(vma, address);
++
++			ptep_modify_prot_commit(vma, address, pte, oldpte,
++						entry);
+ 			ret = 1;
+ 		} else {
+ #ifdef CONFIG_TRANSPARENT_HUGEPAGE
+
+-- 
+
+2.37.1
+

@@ -1,0 +1,143 @@
+From eca1536b799a6a79af591fff45f32a0ded6dba89 Mon Sep 17 00:00:00 2001
+From: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+Date: Fri, 18 Dec 2020 16:47:00 +0300
+Subject: [PATCH 13/57] PCI: hotplug: Add support of fixed BARs to
+ pci_assign_resource()
+
+Fixed BARs must be assigned within a bridge window first, before movable
+BARs and neighboring bridge windows. Currently they are assigned last by
+pdev_assign_fixed_resources().
+
+Let the fixed BARs be handled by pci_assign_resource() in the same way as
+it does for movable ones, assigning them in correct order, unifying the
+code.
+
+Allow matching IORESOURCE_PCI_FIXED prefetchable BARs to non-prefetchable
+windows, so they follow the same rules as non-flagged fixed BARs.
+
+Signed-off-by: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+---
+ drivers/pci/setup-bus.c | 43 -----------------------------------------
+ drivers/pci/setup-res.c | 41 +++++++++++++++++++++++++++++++++++++--
+ 2 files changed, 39 insertions(+), 45 deletions(-)
+
+diff --git a/drivers/pci/setup-bus.c b/drivers/pci/setup-bus.c
+index 111111111..111111111 100644
+--- a/drivers/pci/setup-bus.c
++++ b/drivers/pci/setup-bus.c
+@@ -1358,47 +1358,6 @@ void pci_bus_size_bridges(struct pci_bus *bus)
+ }
+ EXPORT_SYMBOL(pci_bus_size_bridges);
+ 
+-static void assign_fixed_resource_on_bus(struct pci_bus *b, struct resource *r)
+-{
+-	int i;
+-	struct resource *parent_r;
+-	unsigned long mask = IORESOURCE_IO | IORESOURCE_MEM |
+-			     IORESOURCE_PREFETCH;
+-
+-	pci_bus_for_each_resource(b, parent_r, i) {
+-		if (!parent_r)
+-			continue;
+-
+-		if ((r->flags & mask) == (parent_r->flags & mask) &&
+-		    resource_contains(parent_r, r))
+-			request_resource(parent_r, r);
+-	}
+-}
+-
+-/*
+- * Try to assign any resources marked as IORESOURCE_PCI_FIXED, as they are
+- * skipped by pbus_assign_resources_sorted().
+- */
+-static void pdev_assign_fixed_resources(struct pci_dev *dev)
+-{
+-	int i;
+-
+-	for (i = 0; i <  PCI_NUM_RESOURCES; i++) {
+-		struct pci_bus *b;
+-		struct resource *r = &dev->resource[i];
+-
+-		if (r->parent || !(r->flags & IORESOURCE_PCI_FIXED) ||
+-		    !(r->flags & (IORESOURCE_IO | IORESOURCE_MEM)))
+-			continue;
+-
+-		b = dev->bus;
+-		while (b && !r->parent) {
+-			assign_fixed_resource_on_bus(b, r);
+-			b = b->parent;
+-		}
+-	}
+-}
+-
+ void __pci_bus_assign_resources(const struct pci_bus *bus,
+ 				struct list_head *realloc_head,
+ 				struct list_head *fail_head)
+@@ -1409,8 +1368,6 @@ void __pci_bus_assign_resources(const struct pci_bus *bus,
+ 	pbus_assign_resources_sorted(bus, realloc_head, fail_head);
+ 
+ 	list_for_each_entry(dev, &bus->devices, bus_list) {
+-		pdev_assign_fixed_resources(dev);
+-
+ 		b = dev->subordinate;
+ 		if (!b)
+ 			continue;
+diff --git a/drivers/pci/setup-res.c b/drivers/pci/setup-res.c
+index 111111111..111111111 100644
+--- a/drivers/pci/setup-res.c
++++ b/drivers/pci/setup-res.c
+@@ -337,14 +337,51 @@ static int _pci_assign_resource(struct pci_dev *dev, int resno,
+ 	return ret;
+ }
+ 
++static int assign_fixed_resource_on_bus(struct pci_dev *dev, int resno)
++{
++	int i;
++	struct resource *parent_r;
++	unsigned long mask = IORESOURCE_TYPE_BITS;
++	struct resource *r = dev->resource + resno;
++
++	/*
++	 * If we have a shadow copy in RAM, the PCI device doesn't respond
++	 * to the shadow range
++	 */
++	if (r->flags & IORESOURCE_ROM_SHADOW)
++		return 0;
++
++	pci_bus_for_each_resource(dev->bus, parent_r, i) {
++		if (!parent_r)
++			continue;
++
++		if ((r->flags & mask) != (parent_r->flags & mask))
++			continue;
++
++		if (parent_r->flags & IORESOURCE_PREFETCH &&
++		    !(r->flags & IORESOURCE_PREFETCH))
++			continue;
++
++		if (resource_contains(parent_r, r)) {
++			if (!request_resource(parent_r, r)) {
++				pci_info(dev, "BAR %d: assigned fixed %pR\n", resno, r);
++				return 0;
++			}
++		}
++	}
++
++	pci_err(dev, "BAR %d: failed to assign fixed %pR\n", resno, r);
++	return -ENOSPC;
++}
++
+ int pci_assign_resource(struct pci_dev *dev, int resno)
+ {
+ 	struct resource *res = dev->resource + resno;
+ 	resource_size_t align, size;
+ 	int ret;
+ 
+-	if (res->flags & IORESOURCE_PCI_FIXED)
+-		return 0;
++	if (res->flags && pci_dev_bar_fixed(dev, res))
++		return assign_fixed_resource_on_bus(dev, resno);
+ 
+ 	res->flags |= IORESOURCE_UNSET;
+ 	align = pci_resource_alignment(dev, res);
+

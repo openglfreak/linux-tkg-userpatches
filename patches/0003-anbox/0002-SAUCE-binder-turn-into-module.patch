@@ -44,7 +44,7 @@ Signed-off-by: Seth Forshee <seth.forshee@canonical.com>
  15 files changed, 62 insertions(+), 15 deletions(-)
 
 diff --git a/drivers/android/Kconfig b/drivers/android/Kconfig
-index 53b22e26266c3..2d821ed78453d 100644
+index 1111111..1111111 100644
 --- a/drivers/android/Kconfig
 +++ b/drivers/android/Kconfig
 @@ -9,7 +9,7 @@ config ANDROID
@@ -68,7 +68,7 @@ index 53b22e26266c3..2d821ed78453d 100644
  	help
  	  Binderfs is a pseudo-filesystem for the Android Binder IPC driver
 diff --git a/drivers/android/Makefile b/drivers/android/Makefile
-index c9d3d0c99c257..b9d5ce8deca2b 100644
+index 1111111..1111111 100644
 --- a/drivers/android/Makefile
 +++ b/drivers/android/Makefile
 @@ -1,6 +1,10 @@
@@ -86,10 +86,10 @@ index c9d3d0c99c257..b9d5ce8deca2b 100644
 +# binder-$(CONFIG_ANDROID_BINDER_IPC) := binder.o binder_alloc.o
 +# binder-$(CONFIG_ANDROID_BINDERFS) += binderfs.o
 diff --git a/drivers/android/binder.c b/drivers/android/binder.c
-index bcec598b89f23..da85f50c584c4 100644
+index 1111111..1111111 100644
 --- a/drivers/android/binder.c
 +++ b/drivers/android/binder.c
-@@ -5993,9 +5993,20 @@ static int __init binder_init(void)
+@@ -6459,9 +6459,20 @@ static int __init binder_init(void)
  	return ret;
  }
  
@@ -114,7 +114,7 @@ index bcec598b89f23..da85f50c584c4 100644
 -
 -MODULE_LICENSE("GPL v2");
 diff --git a/drivers/android/binder_alloc.h b/drivers/android/binder_alloc.h
-index 7dea57a84c79b..136a7c8ba92fa 100644
+index 1111111..1111111 100644
 --- a/drivers/android/binder_alloc.h
 +++ b/drivers/android/binder_alloc.h
 @@ -6,6 +6,7 @@
@@ -135,7 +135,7 @@ index 7dea57a84c79b..136a7c8ba92fa 100644
  #else
  static inline void binder_selftest_alloc(struct binder_alloc *alloc) {}
 diff --git a/drivers/android/binder_internal.h b/drivers/android/binder_internal.h
-index 810c0b84d3f81..e6aa992cb3c3d 100644
+index 1111111..1111111 100644
 --- a/drivers/android/binder_internal.h
 +++ b/drivers/android/binder_internal.h
 @@ -5,6 +5,7 @@
@@ -165,10 +165,10 @@ index 810c0b84d3f81..e6aa992cb3c3d 100644
  #else
  static inline int __init init_binderfs(void)
 diff --git a/drivers/android/binderfs.c b/drivers/android/binderfs.c
-index e80ba93c62a90..1a18e9dbb2a69 100644
+index 1111111..1111111 100644
 --- a/drivers/android/binderfs.c
 +++ b/drivers/android/binderfs.c
-@@ -113,7 +113,7 @@ static int binderfs_binder_device_create(struct inode *ref_inode,
+@@ -123,7 +123,7 @@ static int binderfs_binder_device_create(struct inode *ref_inode,
  	struct super_block *sb = ref_inode->i_sb;
  	struct binderfs_info *info = sb->s_fs_info;
  #if defined(CONFIG_IPC_NS)
@@ -177,7 +177,7 @@ index e80ba93c62a90..1a18e9dbb2a69 100644
  #else
  	bool use_reserve = true;
  #endif
-@@ -402,7 +402,7 @@ static int binderfs_binder_ctl_create(struct super_block *sb)
+@@ -412,7 +412,7 @@ static int binderfs_binder_ctl_create(struct super_block *sb)
  	struct dentry *root = sb->s_root;
  	struct binderfs_info *info = sb->s_fs_info;
  #if defined(CONFIG_IPC_NS)
@@ -186,7 +186,7 @@ index e80ba93c62a90..1a18e9dbb2a69 100644
  #else
  	bool use_reserve = true;
  #endif
-@@ -682,7 +682,7 @@ static int binderfs_fill_super(struct super_block *sb, struct fs_context *fc)
+@@ -725,7 +725,7 @@ static int binderfs_fill_super(struct super_block *sb, struct fs_context *fc)
  		return -ENOMEM;
  	info = sb->s_fs_info;
  
@@ -196,22 +196,22 @@ index e80ba93c62a90..1a18e9dbb2a69 100644
  	info->root_gid = make_kgid(sb->s_user_ns, 0);
  	if (!gid_valid(info->root_gid))
 diff --git a/fs/file.c b/fs/file.c
-index 86dc9956af32c..3cc1867f289fa 100644
+index 1111111..1111111 100644
 --- a/fs/file.c
 +++ b/fs/file.c
-@@ -771,6 +771,7 @@ int __close_fd_get_file(unsigned int fd, struct file **res)
- 	*res = NULL;
- 	return -ENOENT;
+@@ -788,6 +788,7 @@ int __close_range(unsigned fd, unsigned max_fd, unsigned int flags)
+ 
+ 	return 0;
  }
 +EXPORT_SYMBOL(close_fd_get_file);
  
  /*
-  * variant of close_fd that gets a ref on the file for later fput.
+  * See close_fd_get_file() below, this variant assumes current->files->file_lock
 diff --git a/include/linux/ipc_namespace.h b/include/linux/ipc_namespace.h
-index 05e22770af517..3ccd19f13f5cf 100644
+index 1111111..1111111 100644
 --- a/include/linux/ipc_namespace.h
 +++ b/include/linux/ipc_namespace.h
-@@ -120,6 +120,9 @@ extern int mq_init_ns(struct ipc_namespace *ns);
+@@ -127,6 +127,9 @@ extern int mq_init_ns(struct ipc_namespace *ns);
  static inline int mq_init_ns(struct ipc_namespace *ns) { return 0; }
  #endif
  
@@ -222,10 +222,10 @@ index 05e22770af517..3ccd19f13f5cf 100644
  extern struct ipc_namespace *copy_ipcs(unsigned long flags,
  	struct user_namespace *user_ns, struct ipc_namespace *ns);
 diff --git a/ipc/namespace.c b/ipc/namespace.c
-index 7bd0766ddc3b1..2bb05b2dacd1f 100644
+index 1111111..1111111 100644
 --- a/ipc/namespace.c
 +++ b/ipc/namespace.c
-@@ -172,6 +172,23 @@ void put_ipc_ns(struct ipc_namespace *ns)
+@@ -185,6 +185,23 @@ void put_ipc_ns(struct ipc_namespace *ns)
  			schedule_work(&free_ipc_work);
  	}
  }
@@ -250,10 +250,10 @@ index 7bd0766ddc3b1..2bb05b2dacd1f 100644
  static inline struct ipc_namespace *to_ipc_ns(struct ns_common *ns)
  {
 diff --git a/kernel/fork.c b/kernel/fork.c
-index f2c64ae59a1a2..2fb0843875165 100644
+index 1111111..1111111 100644
 --- a/kernel/fork.c
 +++ b/kernel/fork.c
-@@ -1147,6 +1147,7 @@ void mmput_async(struct mm_struct *mm)
+@@ -1230,6 +1230,7 @@ void mmput_async(struct mm_struct *mm)
  		schedule_work(&mm->async_put_work);
  	}
  }
@@ -262,10 +262,10 @@ index f2c64ae59a1a2..2fb0843875165 100644
  
  /**
 diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index aae1e0c0f4615..744905ad31ed1 100644
+index 1111111..1111111 100644
 --- a/kernel/sched/core.c
 +++ b/kernel/sched/core.c
-@@ -6659,6 +6659,7 @@ int can_nice(const struct task_struct *p, const int nice)
+@@ -7026,6 +7026,7 @@ int can_nice(const struct task_struct *p, const int nice)
  	return (nice_rlim <= task_rlimit(p, RLIMIT_NICE) ||
  		capable(CAP_SYS_NICE));
  }
@@ -274,10 +274,10 @@ index aae1e0c0f4615..744905ad31ed1 100644
  #ifdef __ARCH_WANT_SYS_NICE
  
 diff --git a/kernel/task_work.c b/kernel/task_work.c
-index 1698fbe6f0e13..90000404af2bf 100644
+index 1111111..1111111 100644
 --- a/kernel/task_work.c
 +++ b/kernel/task_work.c
-@@ -60,6 +60,7 @@ int task_work_add(struct task_struct *task, struct callback_head *work,
+@@ -73,6 +73,7 @@ int task_work_add(struct task_struct *task, struct callback_head *work,
  
  	return 0;
  }
@@ -286,10 +286,10 @@ index 1698fbe6f0e13..90000404af2bf 100644
  /**
   * task_work_cancel_match - cancel a pending work added by task_work_add()
 diff --git a/mm/memory.c b/mm/memory.c
-index fa40a5b7a7a74..eb89641a89d7d 100644
+index 1111111..1111111 100644
 --- a/mm/memory.c
 +++ b/mm/memory.c
-@@ -1643,6 +1643,7 @@ void zap_page_range(struct vm_area_struct *vma, unsigned long start,
+@@ -1749,6 +1749,7 @@ void zap_page_range(struct vm_area_struct *vma, unsigned long start,
  	mmu_notifier_invalidate_range_end(&range);
  	tlb_finish_mmu(&tlb);
  }
@@ -298,10 +298,10 @@ index fa40a5b7a7a74..eb89641a89d7d 100644
  /**
   * zap_page_range_single - remove user pages in a given range
 diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index d5cd528051496..1e0bfeac55f5d 100644
+index 1111111..1111111 100644
 --- a/mm/vmalloc.c
 +++ b/mm/vmalloc.c
-@@ -2425,6 +2425,7 @@ struct vm_struct *get_vm_area(unsigned long size, unsigned long flags)
+@@ -2499,6 +2499,7 @@ struct vm_struct *get_vm_area(unsigned long size, unsigned long flags)
  				  NUMA_NO_NODE, GFP_KERNEL,
  				  __builtin_return_address(0));
  }
@@ -310,10 +310,10 @@ index d5cd528051496..1e0bfeac55f5d 100644
  struct vm_struct *get_vm_area_caller(unsigned long size, unsigned long flags,
  				const void *caller)
 diff --git a/security/security.c b/security/security.c
-index 9ffa9e9c5c554..6990e009ecaba 100644
+index 1111111..1111111 100644
 --- a/security/security.c
 +++ b/security/security.c
-@@ -751,24 +751,28 @@ int security_binder_set_context_mgr(struct task_struct *mgr)
+@@ -752,24 +752,28 @@ int security_binder_set_context_mgr(const struct cred *mgr)
  {
  	return call_int_hook(binder_set_context_mgr, 0, mgr);
  }

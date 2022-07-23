@@ -77,7 +77,7 @@ Signed-off-by: Yafang Shao <laoar.shao@gmail.com>
  1 file changed, 13 insertions(+), 1 deletion(-)
 
 diff --git a/fs/iomap/buffered-io.c b/fs/iomap/buffered-io.c
-index b06138c61..ec17d82ea 100644
+index 1111111..1111111 100644
 --- a/fs/iomap/buffered-io.c
 +++ b/fs/iomap/buffered-io.c
 @@ -17,6 +17,7 @@
@@ -88,36 +88,34 @@ index b06138c61..ec17d82ea 100644
  #include "trace.h"
  
  #include "../internal.h"
-@@ -1404,9 +1405,11 @@ iomap_do_writepage(struct page *page, struct writeback_control *wbc, void *data)
- {
+@@ -1429,7 +1430,9 @@ iomap_do_writepage(struct page *page, struct writeback_control *wbc, void *data)
+ 	struct folio *folio = page_folio(page);
  	struct iomap_writepage_ctx *wpc = data;
- 	struct inode *inode = page->mapping->host;
+ 	struct inode *inode = folio->mapping->host;
 +	unsigned int nofs_flag;
- 	pgoff_t end_index;
- 	u64 end_offset;
- 	loff_t offset;
+ 	u64 end_pos, isize;
 +	int ret;
  
- 	trace_iomap_writepage(inode, page_offset(page), PAGE_SIZE);
+ 	trace_iomap_writepage(inode, folio_pos(folio), folio_size(folio));
  
-@@ -1490,7 +1493,16 @@ iomap_do_writepage(struct page *page, struct writeback_control *wbc, void *data)
- 		end_offset = offset;
+@@ -1510,7 +1513,16 @@ iomap_do_writepage(struct page *page, struct writeback_control *wbc, void *data)
+ 		end_pos = isize;
  	}
  
--	return iomap_writepage_map(wpc, wbc, inode, page, end_offset);
+-	return iomap_writepage_map(wpc, wbc, inode, folio, end_pos);
 +	/*
 +	 * We can allocate memory here while doing writeback on behalf of
 +	 * memory reclaim.  To avoid memory allocation deadlocks set the
 +	 * task-wide nofs context for the following operations.
 +	 */
 +	nofs_flag = memalloc_nofs_save();
-+	ret = iomap_writepage_map(wpc, wbc, inode, page, end_offset);
++	ret = iomap_writepage_map(wpc, wbc, inode, folio, end_pos);
 +	memalloc_nofs_restore(nofs_flag);
 +
 +	return ret;
  
  redirty:
- 	redirty_page_for_writepage(wbc, page);
+ 	folio_redirty_for_writepage(wbc, folio);
 -- 
-2.33.0.328.g8b7c11b866
+2.37.1
 

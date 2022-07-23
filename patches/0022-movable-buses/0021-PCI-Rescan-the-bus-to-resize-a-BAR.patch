@@ -1,0 +1,54 @@
+From ebc3d67590814be95061646690c420395cb6063c Mon Sep 17 00:00:00 2001
+From: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+Date: Fri, 18 Dec 2020 16:46:53 +0300
+Subject: [PATCH 21/57] PCI: Rescan the bus to resize a BAR
+
+BAR resizing can be blocked by another BAR, so trigger a bus rescan to be
+able to move BARs, increasing the probability of finding a good layout.
+
+Signed-off-by: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+---
+ drivers/pci/setup-res.c | 15 ++++++++++++++-
+ 1 file changed, 14 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/pci/setup-res.c b/drivers/pci/setup-res.c
+index 111111111..111111111 100644
+--- a/drivers/pci/setup-res.c
++++ b/drivers/pci/setup-res.c
+@@ -490,6 +490,9 @@ int pci_resize_resource(struct pci_dev *dev, int resno, int size)
+ 	if (host->preserve_config)
+ 		return -ENOTSUPP;
+ 
++	if (pci_dev_bar_fixed(dev, res))
++		return -EOPNOTSUPP;
++
+ 	/* Make sure the resource isn't assigned before resizing it. */
+ 	if (!(res->flags & IORESOURCE_UNSET))
+ 		return -EBUSY;
+@@ -516,7 +519,15 @@ int pci_resize_resource(struct pci_dev *dev, int resno, int size)
+ 	res->end = res->start + pci_rebar_size_to_bytes(size) - 1;
+ 
+ 	/* Check if the new config works by trying to assign everything. */
+-	if (dev->bus->self) {
++	if (pci_can_move_bars) {
++		pci_rescan_bus(dev->bus);
++
++		if (!res->flags || (res->flags & IORESOURCE_UNSET) || !res->parent) {
++			pci_err(dev, "BAR %d resize failed\n", resno);
++			ret = -1;
++			goto error_resize;
++		}
++	} else if (dev->bus->self) {
+ 		ret = pci_reassign_bridge_resources(dev->bus->self, res->flags);
+ 		if (ret)
+ 			goto error_resize;
+@@ -526,6 +537,8 @@ int pci_resize_resource(struct pci_dev *dev, int resno, int size)
+ error_resize:
+ 	pci_rebar_set_size(dev, resno, old);
+ 	res->end = res->start + pci_rebar_size_to_bytes(old) - 1;
++	if (pci_can_move_bars)
++		pci_rescan_bus(dev->bus);
+ 	return ret;
+ }
+ EXPORT_SYMBOL(pci_resize_resource);
+

@@ -13,10 +13,10 @@ Signed-off-by: Sultan Alsawaf <sultan@kerneltoast.com>
  1 file changed, 5 insertions(+), 2 deletions(-)
 
 diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index 7caa0e3ea..9970653e0 100644
+index 1111111..1111111 100644
 --- a/mm/page_alloc.c
 +++ b/mm/page_alloc.c
-@@ -2690,8 +2690,11 @@ static void steal_suitable_fallback(struct zone *zone, struct page *page,
+@@ -2704,8 +2704,11 @@ static void steal_suitable_fallback(struct zone *zone, struct page *page,
  	 * likelihood of future fallbacks. Wake kswapd now as the node
  	 * may be balanced overall and kswapd will not wake naturally.
  	 */
@@ -31,5 +31,5 @@ index 7caa0e3ea..9970653e0 100644
  	/* We are not allowed to try stealing from the whole block */
  	if (!whole_block)
 -- 
-2.33.0.328.g8b7c11b866
+2.37.1
 

@@ -1,0 +1,40 @@
+From 063034ef96c4b5a028ebc7c126dfc86b08094f12 Mon Sep 17 00:00:00 2001
+From: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+Date: Wed, 13 May 2020 13:10:35 +0300
+Subject: [PATCH 52/57] powerpc/pci: Enable assigning bus numbers instead of
+ reading them from DT
+
+If the firmware indicates support of reassigning bus numbers via the PHB's
+"ibm,supported-movable-bdfs" property in DT, PowerNV will not depend on PCI
+topology info from DT anymore.
+
+This makes possible to re-enumerate the fabric, assign the new bus numbers
+and switch from the pnv_php module to the standard pciehp driver for PCI
+hotplug functionality.
+
+Signed-off-by: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+---
+ arch/powerpc/kernel/pci_dn.c | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/arch/powerpc/kernel/pci_dn.c b/arch/powerpc/kernel/pci_dn.c
+index 111111111..111111111 100644
+--- a/arch/powerpc/kernel/pci_dn.c
++++ b/arch/powerpc/kernel/pci_dn.c
+@@ -557,6 +557,15 @@ void pci_devs_phb_init_dynamic(struct pci_controller *phb)
+ 		phb->pci_data = pdn;
+ 	}
+ 
++	if (of_get_property(dn, "ibm,supported-movable-bdfs", NULL)) {
++		pci_add_flags(PCI_REASSIGN_ALL_BUS);
++		return;
++	}
++
++	if (pci_can_move_buses)
++		pr_warn("Firmware doesn't support movable buses, disabling\n");
++	pci_can_move_buses = false;
++
+ 	/* Update dn->phb ptrs for new phb and children devices */
+ 	pci_traverse_device_nodes(dn, add_pdn, phb);
+ }
+

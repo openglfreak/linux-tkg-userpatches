@@ -37,10 +37,10 @@ Signed-off-by: Oleksandr Natalenko <oleksandr@natalenko.name>
  1 file changed, 6 insertions(+), 1 deletion(-)
 
 diff --git a/net/mac80211/rc80211_minstrel_ht.c b/net/mac80211/rc80211_minstrel_ht.c
-index 72b44d4c4..f60003530 100644
+index 1111111..1111111 100644
 --- a/net/mac80211/rc80211_minstrel_ht.c
 +++ b/net/mac80211/rc80211_minstrel_ht.c
-@@ -440,8 +440,13 @@ minstrel_ht_get_tp_avg(struct minstrel_ht_sta *mi, int group, int rate,
+@@ -508,8 +508,13 @@ minstrel_ht_get_tp_avg(struct minstrel_ht_sta *mi, int group, int rate,
  
  	if (minstrel_ht_is_legacy_group(group))
  		overhead = mi->overhead_legacy;
@@ -56,5 +56,5 @@ index 72b44d4c4..f60003530 100644
  	nsecs = 1000 * overhead / ampdu_len;
  	nsecs += minstrel_mcs_groups[group].duration[rate] <<
 -- 
-2.33.1.711.g9d530dc002
+2.37.1
 

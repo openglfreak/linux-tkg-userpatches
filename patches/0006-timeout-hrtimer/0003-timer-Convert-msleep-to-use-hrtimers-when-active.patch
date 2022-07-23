@@ -9,10 +9,10 @@ Signed-off-by: Alexandre Frade <kernel@xanmod.org>
  1 file changed, 22 insertions(+), 2 deletions(-)
 
 diff --git a/kernel/time/timer.c b/kernel/time/timer.c
-index ffafd93b2a101..dbae87bf91ef9 100644
+index 1111111..1111111 100644
 --- a/kernel/time/timer.c
 +++ b/kernel/time/timer.c
-@@ -2042,7 +2042,19 @@ void __init init_timers(void)
+@@ -2097,7 +2097,19 @@ void __init init_timers(void)
   */
  void msleep(unsigned int msecs)
  {
@@ -33,7 +33,7 @@ index ffafd93b2a101..dbae87bf91ef9 100644
  
  	while (timeout)
  		timeout = schedule_timeout_uninterruptible(timeout);
-@@ -2056,7 +2068,15 @@ EXPORT_SYMBOL(msleep);
+@@ -2111,7 +2123,15 @@ EXPORT_SYMBOL(msleep);
   */
  unsigned long msleep_interruptible(unsigned int msecs)
  {

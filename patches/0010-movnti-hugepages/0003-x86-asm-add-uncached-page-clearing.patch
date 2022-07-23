@@ -218,10 +218,10 @@ Signed-off-by: Ankur Arora <ankur.a.arora@oracle.com>
  2 files changed, 27 insertions(+)
 
 diff --git a/arch/x86/include/asm/page_64.h b/arch/x86/include/asm/page_64.h
-index 4bde0dc66100..cfb95069cf9e 100644
+index 1111111..1111111 100644
 --- a/arch/x86/include/asm/page_64.h
 +++ b/arch/x86/include/asm/page_64.h
-@@ -43,6 +43,7 @@ extern unsigned long __phys_addr_symbol(unsigned long);
+@@ -44,6 +44,7 @@ extern unsigned long __phys_addr_symbol(unsigned long);
  void clear_page_orig(void *page);
  void clear_page_rep(void *page);
  void clear_page_erms(void *page);
@@ -230,11 +230,11 @@ index 4bde0dc66100..cfb95069cf9e 100644
  static inline void clear_page(void *page)
  {
 diff --git a/arch/x86/lib/clear_page_64.S b/arch/x86/lib/clear_page_64.S
-index c4c7dd115953..578f40db0716 100644
+index 1111111..1111111 100644
 --- a/arch/x86/lib/clear_page_64.S
 +++ b/arch/x86/lib/clear_page_64.S
 @@ -50,3 +50,29 @@ SYM_FUNC_START(clear_page_erms)
- 	ret
+ 	RET
  SYM_FUNC_END(clear_page_erms)
  EXPORT_SYMBOL_GPL(clear_page_erms)
 +

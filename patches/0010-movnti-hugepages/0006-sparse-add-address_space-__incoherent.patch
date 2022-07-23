@@ -177,10 +177,10 @@ Signed-off-by: Ankur Arora <ankur.a.arora@oracle.com>
  1 file changed, 2 insertions(+)
 
 diff --git a/include/linux/compiler_types.h b/include/linux/compiler_types.h
-index b6ff83a714ca..f7f68d7bc494 100644
+index 1111111..1111111 100644
 --- a/include/linux/compiler_types.h
 +++ b/include/linux/compiler_types.h
-@@ -11,6 +11,7 @@
+@@ -19,6 +19,7 @@
  # define __iomem	__attribute__((noderef, address_space(__iomem)))
  # define __percpu	__attribute__((noderef, address_space(__percpu)))
  # define __rcu		__attribute__((noderef, address_space(__rcu)))
@@ -188,9 +188,9 @@ index b6ff83a714ca..f7f68d7bc494 100644
  static inline void __chk_user_ptr(const volatile void __user *ptr) { }
  static inline void __chk_io_ptr(const volatile void __iomem *ptr) { }
  /* context/locking */
-@@ -37,6 +38,7 @@ static inline void __chk_io_ptr(const volatile void __iomem *ptr) { }
+@@ -46,6 +47,7 @@ static inline void __chk_io_ptr(const volatile void __iomem *ptr) { }
  # define __iomem
- # define __percpu
+ # define __percpu	BTF_TYPE_TAG(percpu)
  # define __rcu
 +# define __incoherent
  # define __chk_user_ptr(x)	(void)0

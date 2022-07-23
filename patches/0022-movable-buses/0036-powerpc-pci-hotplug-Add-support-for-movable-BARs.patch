@@ -1,0 +1,205 @@
+From a5e3e8db25e6b7021e9c0e4f357739330c4f477d Mon Sep 17 00:00:00 2001
+From: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+Date: Wed, 13 May 2020 13:09:25 +0300
+Subject: [PATCH 36/57] powerpc/pci: hotplug: Add support for movable BARs
+
+Add pcibios_root_bus_rescan_prepare()/_done() hooks for the powerpc, so it
+can reassign the PE numbers (which depend on BAR sizes and locations) and
+update the EEH address cache during a PCI rescan.
+
+New PE numbers are assigned during pci_setup_bridges(root) after the rescan
+is done.
+
+CC: Oliver O'Halloran <oohall@gmail.com>
+CC: Sam Bobroff <sbobroff@linux.ibm.com>
+Signed-off-by: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+---
+ arch/powerpc/include/asm/pci-bridge.h     |  1 +
+ arch/powerpc/kernel/eeh.c                 | 10 ++---
+ arch/powerpc/kernel/pci-hotplug.c         | 51 +++++++++++++++++++++++
+ arch/powerpc/kernel/pci_dn.c              |  2 +-
+ arch/powerpc/platforms/powernv/pci-ioda.c |  2 +
+ drivers/pci/probe.c                       | 10 +++++
+ include/linux/pci.h                       |  3 ++
+ 7 files changed, 73 insertions(+), 6 deletions(-)
+
+diff --git a/arch/powerpc/include/asm/pci-bridge.h b/arch/powerpc/include/asm/pci-bridge.h
+index 111111111..111111111 100644
+--- a/arch/powerpc/include/asm/pci-bridge.h
++++ b/arch/powerpc/include/asm/pci-bridge.h
+@@ -230,6 +230,7 @@ extern struct pci_dn *pci_add_device_node_info(struct pci_controller *hose,
+ 					       struct device_node *dn);
+ extern void pci_remove_device_node_info(struct device_node *dn);
+ extern void pci_free_pdn(struct pci_dn *pdn);
++extern struct pci_dn *pci_bus_to_pdn(struct pci_bus *bus);
+ 
+ #ifdef CONFIG_PCI_IOV
+ struct pci_dn *add_sriov_vf_pdns(struct pci_dev *pdev);
+diff --git a/arch/powerpc/kernel/eeh.c b/arch/powerpc/kernel/eeh.c
+index 111111111..111111111 100644
+--- a/arch/powerpc/kernel/eeh.c
++++ b/arch/powerpc/kernel/eeh.c
+@@ -999,16 +999,16 @@ void eeh_probe_device(struct pci_dev *dev)
+ {
+ 	struct eeh_dev *edev;
+ 
+-	pr_debug("EEH: Adding device %s\n", pci_name(dev));
+-
+ 	/*
++	 * A device can be already initialized during a previous pass.
++	 *
+ 	 * pci_dev_to_eeh_dev() can only work if eeh_probe_dev() was
+ 	 * already called for this device.
+ 	 */
+-	if (WARN_ON_ONCE(pci_dev_to_eeh_dev(dev))) {
+-		pci_dbg(dev, "Already bound to an eeh_dev!\n");
++	if (pci_dev_to_eeh_dev(dev))
+ 		return;
+-	}
++
++	pr_debug("EEH: Adding device %s\n", pci_name(dev));
+ 
+ 	edev = eeh_ops->probe(dev);
+ 	if (!edev) {
+diff --git a/arch/powerpc/kernel/pci-hotplug.c b/arch/powerpc/kernel/pci-hotplug.c
+index 111111111..111111111 100644
+--- a/arch/powerpc/kernel/pci-hotplug.c
++++ b/arch/powerpc/kernel/pci-hotplug.c
+@@ -17,6 +17,8 @@
+ #include <asm/ppc-pci.h>
+ #include <asm/firmware.h>
+ #include <asm/eeh.h>
++/* for pci_dev_is_added() */
++#include "../../../drivers/pci/pci.h"
+ 
+ static struct pci_bus *find_bus_among_children(struct pci_bus *bus,
+ 					       struct device_node *dn)
+@@ -149,3 +151,52 @@ void pci_hp_add_devices(struct pci_bus *bus)
+ 	pcibios_finish_adding_to_bus(bus);
+ }
+ EXPORT_SYMBOL_GPL(pci_hp_add_devices);
++
++static void pci_hp_bus_rescan_prepare(struct pci_dn *parent)
++{
++	struct pci_dn *pdn;
++
++	if (!parent)
++		return;
++
++	list_for_each_entry(pdn, &parent->child_list, list) {
++		struct pci_dev *dev = pci_get_domain_bus_and_slot(
++			pci_domain_nr(pdn->phb->bus),
++			pdn->busno, pdn->devfn);
++
++		if (!dev)
++			continue;
++
++		pci_hp_bus_rescan_prepare(pdn);
++
++		if (pdn->phb->controller_ops.release_device)
++			pdn->phb->controller_ops.release_device(dev);
++	}
++}
++
++static void pci_hp_bus_rescan_done(struct pci_bus *bus)
++{
++	struct pci_dev *dev;
++
++	list_for_each_entry(dev, &bus->devices, bus_list) {
++		struct pci_bus *child = dev->subordinate;
++
++		if (!pci_dev_is_added(dev))
++			continue;
++
++		pcibios_bus_add_device(dev);
++
++		if (child)
++			pci_hp_bus_rescan_done(child);
++	}
++}
++
++void pcibios_root_bus_rescan_prepare(struct pci_bus *root)
++{
++	pci_hp_bus_rescan_prepare(pci_bus_to_pdn(root));
++}
++
++void pcibios_root_bus_rescan_done(struct pci_bus *root)
++{
++	pci_hp_bus_rescan_done(root);
++}
+diff --git a/arch/powerpc/kernel/pci_dn.c b/arch/powerpc/kernel/pci_dn.c
+index 111111111..111111111 100644
+--- a/arch/powerpc/kernel/pci_dn.c
++++ b/arch/powerpc/kernel/pci_dn.c
+@@ -30,7 +30,7 @@ static struct pci_dn *pci_create_pdn_from_dev(struct pci_dev *pdev,
+  * one of PF's bridge. For other devices, their firmware
+  * data is linked to that of their bridge.
+  */
+-static struct pci_dn *pci_bus_to_pdn(struct pci_bus *bus)
++struct pci_dn *pci_bus_to_pdn(struct pci_bus *bus)
+ {
+ 	struct pci_bus *pbus;
+ 	struct device_node *dn;
+diff --git a/arch/powerpc/platforms/powernv/pci-ioda.c b/arch/powerpc/platforms/powernv/pci-ioda.c
+index 111111111..111111111 100644
+--- a/arch/powerpc/platforms/powernv/pci-ioda.c
++++ b/arch/powerpc/platforms/powernv/pci-ioda.c
+@@ -2826,6 +2826,8 @@ static void pnv_pci_release_device(struct pci_dev *pdev)
+ 	if (!pdn || pdn->pe_number == IODA_INVALID_PE)
+ 		return;
+ 
++	iommu_del_device(&pdev->dev);
++
+ #ifdef CONFIG_PCI_IOV
+ 	/*
+ 	 * FIXME: Try move this to sriov_disable(). It's here since we allocate
+diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+index 111111111..111111111 100644
+--- a/drivers/pci/probe.c
++++ b/drivers/pci/probe.c
+@@ -3422,6 +3422,14 @@ static void pci_bus_rescan_done(struct pci_bus *bus)
+ 	}
+ }
+ 
++void __weak pcibios_root_bus_rescan_prepare(struct pci_bus *root)
++{
++}
++
++void __weak pcibios_root_bus_rescan_done(struct pci_bus *root)
++{
++}
++
+ static void pci_setup_bridges(struct pci_bus *bus)
+ {
+ 	struct pci_dev *dev;
+@@ -3663,6 +3671,7 @@ unsigned int pci_rescan_bus(struct pci_bus *bus)
+ 
+ 	if (pci_can_move_bars) {
+ 		pci_bus_rescan_prepare(root);
++		pcibios_root_bus_rescan_prepare(root);
+ 		pci_bus_update_fixed_range(root);
+ 
+ 		max = pci_scan_child_bus(root);
+@@ -3671,6 +3680,7 @@ unsigned int pci_rescan_bus(struct pci_bus *bus)
+ 		pci_reassign_root_bus_resources(root);
+ 
+ 		pci_setup_bridges(root);
++		pcibios_root_bus_rescan_done(root);
+ 		pci_bus_rescan_done(root);
+ 	} else {
+ 		max = pci_scan_child_bus(bus);
+diff --git a/include/linux/pci.h b/include/linux/pci.h
+index 111111111..111111111 100644
+--- a/include/linux/pci.h
++++ b/include/linux/pci.h
+@@ -1389,6 +1389,9 @@ unsigned int pci_rescan_bus(struct pci_bus *bus);
+ void pci_lock_rescan_remove(void);
+ void pci_unlock_rescan_remove(void);
+ 
++void pcibios_root_bus_rescan_prepare(struct pci_bus *root);
++void pcibios_root_bus_rescan_done(struct pci_bus *root);
++
+ /* Vital Product Data routines */
+ ssize_t pci_read_vpd(struct pci_dev *dev, loff_t pos, size_t count, void *buf);
+ ssize_t pci_write_vpd(struct pci_dev *dev, loff_t pos, size_t count, const void *buf);
+

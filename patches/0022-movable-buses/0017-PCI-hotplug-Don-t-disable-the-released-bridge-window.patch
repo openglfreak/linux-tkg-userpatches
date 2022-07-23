@@ -1,0 +1,41 @@
+From 4797f6a8928ffb73ca70b5dca2ee3b1bf64a9e53 Mon Sep 17 00:00:00 2001
+From: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+Date: Fri, 18 Dec 2020 16:47:14 +0300
+Subject: [PATCH 17/57] PCI: hotplug: Don't disable the released bridge windows
+ immediately
+
+On a hotplug event with enabled BAR movement, calculating new BAR layout
+and bridge windows takes some time. During this procedure, the structures
+representing these windows are released: marked for a recalculation.
+
+When the new bridge window values are ready, they are written to the bridge
+registers via pci_setup_bridges().
+
+Currently, bridge's registers are updated immediately after releasing a
+window to disable it. But if a driver doesn't yet support movable BARs, it
+doesn't stop MEM transactions during the hotplug, so disabled bridge
+windows will break them.
+
+Let the bridge windows remain operating after releasing, as they will be
+updated to the new values in the end of a hotplug event.
+
+Signed-off-by: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+---
+ drivers/pci/setup-bus.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/pci/setup-bus.c b/drivers/pci/setup-bus.c
+index 111111111..111111111 100644
+--- a/drivers/pci/setup-bus.c
++++ b/drivers/pci/setup-bus.c
+@@ -1649,7 +1649,8 @@ static void pci_bridge_release_resources(struct pci_bus *bus,
+ 		/* Avoiding touch the one without PREF */
+ 		if (type & IORESOURCE_PREFETCH)
+ 			type = IORESOURCE_PREFETCH;
+-		__pci_setup_bridge(bus, type);
++		if (!pci_can_move_bars)
++			__pci_setup_bridge(bus, type);
+ 		/* For next child res under same bridge */
+ 		r->flags = old_flags;
+ 	}
+

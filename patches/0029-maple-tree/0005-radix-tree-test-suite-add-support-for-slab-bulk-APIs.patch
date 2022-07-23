@@ -1,0 +1,400 @@
+From patchwork Wed Jul 20 02:17:40 2022
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Liam Howlett <Liam.Howlett@Oracle.com>
+X-Patchwork-Id: 12923228
+Return-Path: <owner-linux-mm@kvack.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from kanga.kvack.org (kanga.kvack.org [205.233.56.17])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 66A80C43334
+	for <linux-mm@archiver.kernel.org>; Wed, 20 Jul 2022 02:17:55 +0000 (UTC)
+Received: by kanga.kvack.org (Postfix)
+	id 380F3900002; Tue, 19 Jul 2022 22:17:49 -0400 (EDT)
+Received: by kanga.kvack.org (Postfix, from userid 40)
+	id 32EA76B007B; Tue, 19 Jul 2022 22:17:49 -0400 (EDT)
+X-Delivered-To: int-list-linux-mm@kvack.org
+Received: by kanga.kvack.org (Postfix, from userid 63042)
+	id 0E5206B007D; Tue, 19 Jul 2022 22:17:49 -0400 (EDT)
+X-Delivered-To: linux-mm@kvack.org
+Received: from relay.hostedemail.com (smtprelay0013.hostedemail.com
+ [216.40.44.13])
+	by kanga.kvack.org (Postfix) with ESMTP id F00DD6B0078
+	for <linux-mm@kvack.org>; Tue, 19 Jul 2022 22:17:48 -0400 (EDT)
+Received: from smtpin25.hostedemail.com (a10.router.float.18 [10.200.18.1])
+	by unirelay09.hostedemail.com (Postfix) with ESMTP id C6B36803A8
+	for <linux-mm@kvack.org>; Wed, 20 Jul 2022 02:17:48 +0000 (UTC)
+X-FDA: 79705867416.25.27FCD60
+Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com
+ [205.220.165.32])
+	by imf22.hostedemail.com (Postfix) with ESMTP id 49901C0075
+	for <linux-mm@kvack.org>; Wed, 20 Jul 2022 02:17:48 +0000 (UTC)
+Received: from pps.filterd (m0246627.ppops.net [127.0.0.1])
+	by mx0b-00069f02.pphosted.com (8.17.1.5/8.17.1.5) with ESMTP id
+ 26K0mq6V017914;
+	Wed, 20 Jul 2022 02:17:45 GMT
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com;
+ h=from : to : cc :
+ subject : date : message-id : references : in-reply-to : content-type :
+ content-transfer-encoding : mime-version; s=corp-2022-7-12;
+ bh=NgDCkHFnu1X90UETZOOKf916fjPinMgGhhoyEGzlRL0=;
+ b=1RqBk2OCOgFr/r7S+VPS2NMbI3thduV7uGhrPU4qI+s/RD+wcdqn4CPXh4tTcLjoQMtx
+ 1iP1ijma2q1J4nCCnYs4p4toIm0GTeuM+WLODA1oGbDhs5siCdpiuNsWpfe1YRrND4kT
+ NfPVTLNGQH7rmdpIB8iKeDl8L2fCPzQ38Ls6YZPglk8OSplIFNVbTLEoV6SiQG6U1ree
+ sYJDht0Fkm4j4oRqjMarFOHrj9o7hOZsGE+UpWRVYzvkANhyJWQ1jP7y3vbzOQFk4B4d
+ YqicXBZGZHXwC+X+5DBkNkSD3IeLG4e2F6RS+m3WoomZNINeb72HTtdwOuNkqe3oUTkw jw==
+Received: from iadpaimrmta02.imrmtpd1.prodappiadaev1.oraclevcn.com
+ (iadpaimrmta02.appoci.oracle.com [147.154.18.20])
+	by mx0b-00069f02.pphosted.com (PPS) with ESMTPS id 3hbkx107st-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
+	Wed, 20 Jul 2022 02:17:45 +0000
+Received: from pps.filterd
+ (iadpaimrmta02.imrmtpd1.prodappiadaev1.oraclevcn.com [127.0.0.1])
+	by iadpaimrmta02.imrmtpd1.prodappiadaev1.oraclevcn.com (8.17.1.5/8.17.1.5)
+ with ESMTP id 26K0rIv4002688;
+	Wed, 20 Jul 2022 02:17:43 GMT
+Received: from nam11-co1-obe.outbound.protection.outlook.com
+ (mail-co1nam11lp2170.outbound.protection.outlook.com [104.47.56.170])
+	by iadpaimrmta02.imrmtpd1.prodappiadaev1.oraclevcn.com (PPS) with ESMTPS id
+ 3hc1mbnukc-4
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
+	Wed, 20 Jul 2022 02:17:43 +0000
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
+ b=girDvb4UoYqAVwfwmU2l9UyXqdvgU8Mane+7ohM33/xB/T1YjobdJHsf1pIWBIhZecd9lBAqAmvl8+APDSYaFSqWZlCXNgfS4LOVln1X8ZzI2aizt92qWzNB/qTvAxHZ3Nc4c+vIJt8c1o9nsFNn5pPZ9SGqtZjlNDt1bl4B3NkAhrUixfSh8sbHQXZz/XlSb0pLH5I2N9hcje/DYPbh76Pn6WiR1IXl+C46mt1xE8Tr9Wot7bVTFGPLy1EV89M3v5Vm06IUFbZNU1uevmbEra0ST2kI/1QHictdVJP6bgkoRYXBIgQ+7HFYOEUtpuqB+bbO18qrq8LxrtDdV0Ehqw==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector9901;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=NgDCkHFnu1X90UETZOOKf916fjPinMgGhhoyEGzlRL0=;
+ b=Q5x9WWXGMSxaPaIKNEnPpRHDMjZIfEdLsw6d/3DNPkmAW4r7w12oRJ8/wncghIXvqdy8qKI0lES4oowRwj/IEXQTaTTqtYTkpQ1EYnYUlc5PmC3oeXciDu03hR6VNDWe1IzH8UX6hQhpPVvilYz273F+U5qfq3rsNNkNMjaL1FQFPYuGkkrz3PXzZY/NkP1lQVhyishlY4IoYlIwzuSGNYQP2e/9R/IW0VTs70G/RybemITsLQ59iXyRcBrOI7/lPTYEJvZ5mjB0eGpi6lCUtH4feY6ghRFWcKfH8AVs8Grqh2oq/wY1Y8HY7JzhniYsxLVdi2ktVkEMSrEABND0mA==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=oracle.com; dmarc=pass action=none header.from=oracle.com;
+ dkim=pass header.d=oracle.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=oracle.onmicrosoft.com; s=selector2-oracle-onmicrosoft-com;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=NgDCkHFnu1X90UETZOOKf916fjPinMgGhhoyEGzlRL0=;
+ b=CUHAycN1DVsHubU6ZEqaMjrV8Ps9MEL7v/g4FNEO7Xu18Uq7GMqmEz5G+qQAW9fhgfFTaC6jovjXhz2qKnfPzHP7IBApwqsjOzsyjhzUEjwz/M/sea2Cw/T0MOAG0X7LnkKw4mg1UYNoylYTaR4cbWHR7pMHWuSmva0acuHinp8=
+Received: from SN6PR10MB3022.namprd10.prod.outlook.com (2603:10b6:805:d8::25)
+ by DM6PR10MB2889.namprd10.prod.outlook.com (2603:10b6:5:64::21) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.5438.17; Wed, 20 Jul
+ 2022 02:17:41 +0000
+Received: from SN6PR10MB3022.namprd10.prod.outlook.com
+ ([fe80::c4d1:edc3:7d21:7c68]) by SN6PR10MB3022.namprd10.prod.outlook.com
+ ([fe80::c4d1:edc3:7d21:7c68%6]) with mapi id 15.20.5438.024; Wed, 20 Jul 2022
+ 02:17:41 +0000
+From: Liam Howlett <liam.howlett@oracle.com>
+To: "maple-tree@lists.infradead.org" <maple-tree@lists.infradead.org>,
+        "linux-mm@kvack.org" <linux-mm@kvack.org>,
+        "linux-kernel@vger.kernel.org"
+	<linux-kernel@vger.kernel.org>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Hugh Dickins <hughd@google.com>
+CC: Yu Zhao <yuzhao@google.com>
+Subject: [PATCH v12 05/69] radix tree test suite: add support for slab bulk
+ APIs
+Thread-Topic: [PATCH v12 05/69] radix tree test suite: add support for slab
+ bulk APIs
+Thread-Index: AQHYm97jKvIH9gXk6U6E0WbvNIWVIQ==
+Date: Wed, 20 Jul 2022 02:17:40 +0000
+Message-ID: <20220720021727.17018-6-Liam.Howlett@oracle.com>
+References: <20220720021727.17018-1-Liam.Howlett@oracle.com>
+In-Reply-To: <20220720021727.17018-1-Liam.Howlett@oracle.com>
+Accept-Language: en-US
+Content-Language: en-US
+X-MS-Has-Attach: 
+X-MS-TNEF-Correlator: 
+x-mailer: git-send-email 2.35.1
+x-ms-publictraffictype: Email
+x-ms-office365-filtering-correlation-id: 2cab8807-ceaa-4dee-5693-08da69f60641
+x-ms-traffictypediagnostic: DM6PR10MB2889:EE_
+x-ms-exchange-senderadcheck: 1
+x-ms-exchange-antispam-relay: 0
+x-microsoft-antispam: BCL:0;
+x-microsoft-antispam-message-info: 
+ wuB7P6O4zB3EadGbb89/h0G0Fh0JRaNXlnVmmWiELj4uq+g9eGv5uihcX0owbyb0D2o7WomWzUJdeYJ873Dak/JHfFr4Y1lJFpP24FbbYW9Emy96hIo+4pr1cIAbTgmlRrM7Q5wbVUaqJILblkl3a2zWMIffxueESHnpFlyrnaUeKNj6PCcmdlSzI74lf88w5mlgbrctwRHJk9QWosSfu0ppLyiQIziQEhLrDx50DGPnrZ9dpsbWpC01LloXZu7qAc37Le5+oCrxxsa7SPlPKk2rFbu0ilMY5iA6JQXBNh90jWBNoL9mT3DofUCvLLB7yKduZ9R/+LAoGClNlclLhgLfSHq6amyCCf6vjgmQgzdpw6lSNFe80dVlE1Y7bP9G8f89nsKvld7TLToZ0/apznIXQ/vlwjSTXr7A1GfXqp4Nuc4SovDoOEJQ2n1gbv4ya4V71j2aH5wNvSWKiCxbnWKna7NfgX2X2yZiijRPtBQWopLqBtAItKt1bnhXM0mCHCc8C0U8+pF0SXqCdrL1xiykvXGNgkCkxBNFFaCAHC9KaCK47bGxV+lh6VblSWHZeHq5cv+qehg588Le7x9XcfTnZzrerFLvwmDWv+rHbdhp27YcAwS8npXjLHZ3X2DohR28F+Bu8Vz0BaH67VVqgsyCn504ytD6iawKX4nosBdwBQG30GfqnzpGGz15OFZi132cZQqFyWpblCjVN58FPSY/RsJU4sZN/a3ZlFtSFDetQjxhnEWqUuLd3oeBXZnzbosELR/rJXFmrl8Qc5wOu4VegVTHimrArcXMr7YGlPB/0fHd28mZczvqWqzc+IWWZCA1KZM4o08LfyeIz/gxVPjXQxjeG4CIhU2C/nkYAza9FsiOYXtOoY5ZFzobEF3h
+x-forefront-antispam-report: 
+ CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:SN6PR10MB3022.namprd10.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230016)(136003)(346002)(376002)(396003)(366004)(39860400002)(8936002)(5660300002)(76116006)(44832011)(64756008)(66476007)(66446008)(66946007)(66556008)(8676002)(4326008)(2906002)(91956017)(122000001)(38100700002)(86362001)(38070700005)(6486002)(966005)(36756003)(71200400001)(478600001)(41300700001)(83380400001)(316002)(110136005)(186003)(6512007)(26005)(6506007)(2616005)(1076003);DIR:OUT;SFP:1101;
+x-ms-exchange-antispam-messagedata-chunkcount: 1
+x-ms-exchange-antispam-messagedata-0: =?iso-8859-1?q?ywtJLOxyetZ2JWC8Y5jHRoY?=
+	=?iso-8859-1?q?je/XMrkSouaWAc0XyjbxxBbjBzVGsEynvNoxnml2FiBSvIywrXv40/bpSp+J?=
+	=?iso-8859-1?q?+wo6DIVNjonZu8zfkn5SzpJEc+d6qhA1gYVeWcjGmCzX8Z7JdbjM2WSEZG5v?=
+	=?iso-8859-1?q?SxQUjOwLNmuR7d0V9PSCOy8b/nClJl/nsO91hdlK0zCsF2nf4mJVKv3QimjI?=
+	=?iso-8859-1?q?dui2R/BL0puvNk68TIExZm9ekcSwX7NERhu3N5OlrK0Pddbt//m0hrOuUjdy?=
+	=?iso-8859-1?q?AH60VALua1JQYMuqH8y0HCsH7UfnDtppyfZ3F6a/sgSk/drCEYIXIqTK3sVV?=
+	=?iso-8859-1?q?N+FYYq1L9FZ0e5V2FH5GJl2+YqlW+uFWn48r2DeXmESGww0FezydsH6zCWIO?=
+	=?iso-8859-1?q?IcYl5MdaSg71kmh2BshW7OoJ3yiqWd/aXtKLIV5o+ALtnYTCg6MT71gc6Obd?=
+	=?iso-8859-1?q?h83x17cSgDTG9WrwdW7NzkCaXwt9uAWvx9cY1IetWGXAzulTLvLzTUyVuaoQ?=
+	=?iso-8859-1?q?NxZG+OGuK+Ps6KQA2NRd0hB2mXlqf3YxFTVUK2ASZUDg4Ec5yquuM9bmtzmS?=
+	=?iso-8859-1?q?LvgYDQQk3LA+mEgWSH7tw6HBLCwUAdk0s0VAOe1X/K5t2pVNHHNYMl+ak5XO?=
+	=?iso-8859-1?q?MroNDgrbUnKinwMpxlqQ7EMrsTr6IsrPdN0tm3E/eFNf+/OTYRuT/rzulp8H?=
+	=?iso-8859-1?q?yIjAHReyAPMshQ0ifLRNOy7jBSkpETSIOBEsLN4KJo7IWkKlB3UoeVAESJUp?=
+	=?iso-8859-1?q?NJ5lI2knQb+nn9IQu/bjJx9U7TIkB/0kqn5oFCpQYr+l753WYRzJY2cWO0QY?=
+	=?iso-8859-1?q?3ZnQl4XAKAsmmpKroXAnVHLSBhimil+V5YC2+hdfnKCdKancWY5q+xqO2bLB?=
+	=?iso-8859-1?q?n05PlQ25oLD+HQM1bZKULJjBVCqrPhKDvjAswrwPSK77ofgLICOxn+HS7eXg?=
+	=?iso-8859-1?q?NzmlNRX+e3oWKpfRkcEAN0YUDqZVir6XeAi96Vnw7UqPyjj0gQ+F6G3xvjWN?=
+	=?iso-8859-1?q?aVxYxwesFtzXOXJw5VK5ZRFbaHRTiUrigG9p0Rsb94AI41xaW9SSydtON9Bl?=
+	=?iso-8859-1?q?x/Sf+Q1GRlNJ9J4GO3819ZL0Xxmk8kTj8smpXkvwyuPabOk+UYMDGsVa3ot2?=
+	=?iso-8859-1?q?vFWUr8++AtnLbLbJethZRJaVaLzp9qAv11ERRm8XIGatBrIbjmdYCgnyM31g?=
+	=?iso-8859-1?q?UL2ONpRqpHawF4D+vv7w7zs8YdB7c+YMLVu5FY+C7sqQKxRse2t2biz1VWho?=
+	=?iso-8859-1?q?YxEqLJdW4t0yfIEezL6laWoGdA9hwGn80w5GXQog08pzKZQJuRiHzMdf+TKR?=
+	=?iso-8859-1?q?glOym36LaNb3do/SoRXHsyeCqTaoIMrH//KT/ieB7TT43FU7Al5mmx53dfN+?=
+	=?iso-8859-1?q?+Za/AINOvzywFBw65+ZPh6n8CAEmrYjdaH5dxmnsa/FLT9r3ZrZ9dG0nL4vG?=
+	=?iso-8859-1?q?wuz3f7TFvmxcKMnkNsZfN+GXcnwYeOfvvjr6yGlWwC8OU+vtC/XG/OFAZ+Ii?=
+	=?iso-8859-1?q?Ac+rmICd8ilE0aZmj9sttRSq3A1hE2br2IIMqcu4/muqoJ3QWp/XOFxy/eCR?=
+	=?iso-8859-1?q?IQXtDnHaBTrk6Fw9oxHXRJ3zBW2pKsi2p6lLdMx34C+YNa1Y02TpnUPROzMa?=
+	=?iso-8859-1?q?QfGXoZiYGzVSg7vnrjush+DV73bQz3M9bOMD0fQ=3D=3D?=
+MIME-Version: 1.0
+X-OriginatorOrg: oracle.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-AuthSource: SN6PR10MB3022.namprd10.prod.outlook.com
+X-MS-Exchange-CrossTenant-Network-Message-Id: 
+ 2cab8807-ceaa-4dee-5693-08da69f60641
+X-MS-Exchange-CrossTenant-originalarrivaltime: 20 Jul 2022 02:17:40.7132
+ (UTC)
+X-MS-Exchange-CrossTenant-fromentityheader: Hosted
+X-MS-Exchange-CrossTenant-id: 4e2c6054-71cb-48f1-bd6c-3a9705aca71b
+X-MS-Exchange-CrossTenant-mailboxtype: HOSTED
+X-MS-Exchange-CrossTenant-userprincipalname: 
+ Hpq5e02b+3X/PDck8IOqdwjvLDCDlCgGdCLikcohAP04ohGIYlflJvhGH8LnaYuczYgdckZ6s+zg1yEz6jZSYQ==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: DM6PR10MB2889
+X-Proofpoint-Virus-Version: vendor=baseguard
+ engine=ICAP:2.0.205,Aquarius:18.0.883,Hydra:6.0.517,FMLib:17.11.122.1
+ definitions=2022-07-19_10,2022-07-19_01,2022-06-22_01
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 malwarescore=0
+ bulkscore=0 phishscore=0
+ suspectscore=0 mlxlogscore=999 adultscore=0 spamscore=0 mlxscore=0
+ classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2206140000
+ definitions=main-2207200008
+X-Proofpoint-GUID: e64JhtAhE9LGEVw5ZyTxFLvUCwYvXk_M
+X-Proofpoint-ORIG-GUID: e64JhtAhE9LGEVw5ZyTxFLvUCwYvXk_M
+ARC-Authentication-Results: i=2;
+	imf22.hostedemail.com;
+	dkim=pass header.d=oracle.com header.s=corp-2022-7-12 header.b=1RqBk2OC;
+	dkim=pass header.d=oracle.onmicrosoft.com
+ header.s=selector2-oracle-onmicrosoft-com header.b=CUHAycN1;
+	arc=pass ("microsoft.com:s=arcselector9901:i=1");
+	dmarc=pass (policy=none) header.from=oracle.com;
+	spf=none (imf22.hostedemail.com: domain of liam.howlett@oracle.com has no SPF
+ policy when checking 205.220.165.32) smtp.mailfrom=liam.howlett@oracle.com
+ARC-Message-Signature: i=2; a=rsa-sha256; c=relaxed/relaxed;
+ d=hostedemail.com;
+	s=arc-20220608; t=1658283468;
+	h=from:from:sender:reply-to:subject:subject:date:date:
+	 message-id:message-id:to:to:cc:cc:mime-version:mime-version:
+	 content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references:dkim-signature;
+	bh=NgDCkHFnu1X90UETZOOKf916fjPinMgGhhoyEGzlRL0=;
+	b=5oJOxJID971pukGD4qf81lLl/X7b5oTc7y+3DxjhNkLEWrSxTWSf7mRx0m8V/YoHpgH3GD
+	EDGszsCJ4M2j1jjAGf7CR6LZA4E/zGYpE3bIjf0np6ZI973XelD4f0u7MlKnzYOSCIuzR7
+	y2EBgW2A/MuVeaolxClTvuhcR2l6YM4=
+ARC-Seal: i=2; s=arc-20220608; d=hostedemail.com; t=1658283468; a=rsa-sha256;
+	cv=pass;
+	b=Au5aCrRHmbWZVySS3CIV92JwOUwK0/Z5+IcyuojZa9u5M/xeFGoU9GJahU68bzRqJC/hll
+	RFWXnDp2d7SxgwkNLe3w8fu+heNlqyprPQRIHlhiO+Qdqw7ywXJ7aMv9iwSWruNCjlBc9D
+	0Ji7LU+MQ8fzaZ1efaBSdvKBjnNAjOo=
+X-Rspamd-Queue-Id: 49901C0075
+Authentication-Results: imf22.hostedemail.com;
+	dkim=pass header.d=oracle.com header.s=corp-2022-7-12 header.b=1RqBk2OC;
+	dkim=pass header.d=oracle.onmicrosoft.com
+ header.s=selector2-oracle-onmicrosoft-com header.b=CUHAycN1;
+	arc=pass ("microsoft.com:s=arcselector9901:i=1");
+	dmarc=pass (policy=none) header.from=oracle.com;
+	spf=none (imf22.hostedemail.com: domain of liam.howlett@oracle.com has no SPF
+ policy when checking 205.220.165.32) smtp.mailfrom=liam.howlett@oracle.com
+X-Rspam-User: 
+X-Rspamd-Server: rspam03
+X-Stat-Signature: c3y8akzgrf5a14rgp5yqzj4efu4gdi8e
+X-HE-Tag: 1658283468-624699
+X-Bogosity: Ham, tests=bogofilter, spamicity=0.000000, version=1.2.4
+Sender: owner-linux-mm@kvack.org
+Precedence: bulk
+X-Loop: owner-majordomo@kvack.org
+List-ID: <linux-mm.kvack.org>
+
+From: "Liam R. Howlett" <Liam.Howlett@Oracle.com>
+
+Add support for kmem_cache_free_bulk() and kmem_cache_alloc_bulk() to the
+radix tree test suite.
+
+Link: https://lkml.kernel.org/r/20220504010716.661115-7-Liam.Howlett@oracle.com
+Link: https://lkml.kernel.org/r/20220621204632.3370049-6-Liam.Howlett@oracle.com
+Signed-off-by: Liam R. Howlett <Liam.Howlett@Oracle.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: David Howells <dhowells@redhat.com>
+Cc: "Matthew Wilcox (Oracle)" <willy@infradead.org>
+Cc: SeongJae Park <sj@kernel.org>
+Cc: Vlastimil Babka <vbabka@suse.cz>
+Cc: Will Deacon <will@kernel.org>
+Cc: Davidlohr Bueso <dave@stgolabs.net>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+ tools/include/linux/slab.h       |   4 ++
+ tools/testing/radix-tree/linux.c | 118 ++++++++++++++++++++++++++++++-
+ 2 files changed, 120 insertions(+), 2 deletions(-)
+
+diff --git a/tools/include/linux/slab.h b/tools/include/linux/slab.h
+index 111111111..111111111 100644
+--- a/tools/include/linux/slab.h
++++ b/tools/include/linux/slab.h
+@@ -41,4 +41,8 @@ struct kmem_cache *kmem_cache_create(const char *name, unsigned int size,
+ 			unsigned int align, unsigned int flags,
+ 			void (*ctor)(void *));
+ 
++void kmem_cache_free_bulk(struct kmem_cache *cachep, size_t size, void **list);
++int kmem_cache_alloc_bulk(struct kmem_cache *cachep, gfp_t gfp, size_t size,
++			  void **list);
++
+ #endif		/* _TOOLS_SLAB_H */
+diff --git a/tools/testing/radix-tree/linux.c b/tools/testing/radix-tree/linux.c
+index 111111111..111111111 100644
+--- a/tools/testing/radix-tree/linux.c
++++ b/tools/testing/radix-tree/linux.c
+@@ -93,14 +93,13 @@ void *kmem_cache_alloc_lru(struct kmem_cache *cachep, struct list_lru *lru,
+ 	return p;
+ }
+ 
+-void kmem_cache_free(struct kmem_cache *cachep, void *objp)
++void kmem_cache_free_locked(struct kmem_cache *cachep, void *objp)
+ {
+ 	assert(objp);
+ 	uatomic_dec(&nr_allocated);
+ 	uatomic_dec(&cachep->nr_allocated);
+ 	if (kmalloc_verbose)
+ 		printf("Freeing %p to slab\n", objp);
+-	pthread_mutex_lock(&cachep->lock);
+ 	if (cachep->nr_objs > 10 || cachep->align) {
+ 		memset(objp, POISON_FREE, cachep->size);
+ 		free(objp);
+@@ -110,9 +109,80 @@ void kmem_cache_free(struct kmem_cache *cachep, void *objp)
+ 		node->parent = cachep->objs;
+ 		cachep->objs = node;
+ 	}
++}
++
++void kmem_cache_free(struct kmem_cache *cachep, void *objp)
++{
++	pthread_mutex_lock(&cachep->lock);
++	kmem_cache_free_locked(cachep, objp);
+ 	pthread_mutex_unlock(&cachep->lock);
+ }
+ 
++void kmem_cache_free_bulk(struct kmem_cache *cachep, size_t size, void **list)
++{
++	if (kmalloc_verbose)
++		pr_debug("Bulk free %p[0-%lu]\n", list, size - 1);
++
++	pthread_mutex_lock(&cachep->lock);
++	for (int i = 0; i < size; i++)
++		kmem_cache_free_locked(cachep, list[i]);
++	pthread_mutex_unlock(&cachep->lock);
++}
++
++int kmem_cache_alloc_bulk(struct kmem_cache *cachep, gfp_t gfp, size_t size,
++			  void **p)
++{
++	size_t i;
++
++	if (kmalloc_verbose)
++		pr_debug("Bulk alloc %lu\n", size);
++
++	if (!(gfp & __GFP_DIRECT_RECLAIM)) {
++		if (cachep->non_kernel < size)
++			return 0;
++
++		cachep->non_kernel -= size;
++	}
++
++	pthread_mutex_lock(&cachep->lock);
++	if (cachep->nr_objs >= size) {
++		struct radix_tree_node *node;
++
++		for (i = 0; i < size; i++) {
++			node = cachep->objs;
++			cachep->nr_objs--;
++			cachep->objs = node->parent;
++			p[i] = node;
++			node->parent = NULL;
++		}
++		pthread_mutex_unlock(&cachep->lock);
++	} else {
++		pthread_mutex_unlock(&cachep->lock);
++		for (i = 0; i < size; i++) {
++			if (cachep->align) {
++				posix_memalign(&p[i], cachep->align,
++					       cachep->size * size);
++			} else {
++				p[i] = malloc(cachep->size * size);
++			}
++			if (cachep->ctor)
++				cachep->ctor(p[i]);
++			else if (gfp & __GFP_ZERO)
++				memset(p[i], 0, cachep->size);
++		}
++	}
++
++	for (i = 0; i < size; i++) {
++		uatomic_inc(&nr_allocated);
++		uatomic_inc(&cachep->nr_allocated);
++		uatomic_inc(&cachep->nr_tallocated);
++		if (kmalloc_verbose)
++			printf("Allocating %p from slab\n", p[i]);
++	}
++
++	return size;
++}
++
+ struct kmem_cache *
+ kmem_cache_create(const char *name, unsigned int size, unsigned int align,
+ 		unsigned int flags, void (*ctor)(void *))
+@@ -130,3 +200,47 @@ kmem_cache_create(const char *name, unsigned int size, unsigned int align,
+ 	ret->non_kernel = 0;
+ 	return ret;
+ }
++
++/*
++ * Test the test infrastructure for kem_cache_alloc/free and bulk counterparts.
++ */
++void test_kmem_cache_bulk(void)
++{
++	int i;
++	void *list[12];
++	static struct kmem_cache *test_cache, *test_cache2;
++
++	/*
++	 * Testing the bulk allocators without aligned kmem_cache to force the
++	 * bulk alloc/free to reuse
++	 */
++	test_cache = kmem_cache_create("test_cache", 256, 0, SLAB_PANIC, NULL);
++
++	for (i = 0; i < 5; i++)
++		list[i] = kmem_cache_alloc(test_cache, __GFP_DIRECT_RECLAIM);
++
++	for (i = 0; i < 5; i++)
++		kmem_cache_free(test_cache, list[i]);
++	assert(test_cache->nr_objs == 5);
++
++	kmem_cache_alloc_bulk(test_cache, __GFP_DIRECT_RECLAIM, 5, list);
++	kmem_cache_free_bulk(test_cache, 5, list);
++
++	for (i = 0; i < 12 ; i++)
++		list[i] = kmem_cache_alloc(test_cache, __GFP_DIRECT_RECLAIM);
++
++	for (i = 0; i < 12; i++)
++		kmem_cache_free(test_cache, list[i]);
++
++	/* The last free will not be kept around */
++	assert(test_cache->nr_objs == 11);
++
++	/* Aligned caches will immediately free */
++	test_cache2 = kmem_cache_create("test_cache2", 128, 128, SLAB_PANIC, NULL);
++
++	kmem_cache_alloc_bulk(test_cache2, __GFP_DIRECT_RECLAIM, 10, list);
++	kmem_cache_free_bulk(test_cache2, 10, list);
++	assert(!test_cache2->nr_objs);
++
++
++}
+

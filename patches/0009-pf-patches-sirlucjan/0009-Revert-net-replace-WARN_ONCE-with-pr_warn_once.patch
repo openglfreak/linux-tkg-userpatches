@@ -9,7 +9,7 @@ This reverts commit 27ee8dfd787409588f0a6c4ef1019fd41bbf3605.
  1 file changed, 1 insertion(+), 2 deletions(-)
 
 diff --git a/net/core/netpoll.c b/net/core/netpoll.c
-index 7aaaeec08..edfc0f801 100644
+index 1111111..1111111 100644
 --- a/net/core/netpoll.c
 +++ b/net/core/netpoll.c
 @@ -152,8 +152,7 @@ static void poll_one_napi(struct napi_struct *napi)
@@ -23,5 +23,5 @@ index 7aaaeec08..edfc0f801 100644
  
  	clear_bit(NAPI_STATE_NPSVC, &napi->state);
 -- 
-2.33.1.711.g9d530dc002
+2.37.1
 

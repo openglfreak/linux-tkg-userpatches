@@ -15,7 +15,7 @@ Signed-off-by: Seth Forshee <seth.forshee@canonical.com>
  1 file changed, 1 insertion(+), 2 deletions(-)
 
 diff --git a/drivers/android/binder_alloc.c b/drivers/android/binder_alloc.c
-index 340515f54498c..ffa6b45ffdef1 100644
+index 1111111..1111111 100644
 --- a/drivers/android/binder_alloc.c
 +++ b/drivers/android/binder_alloc.c
 @@ -38,8 +38,7 @@ enum {

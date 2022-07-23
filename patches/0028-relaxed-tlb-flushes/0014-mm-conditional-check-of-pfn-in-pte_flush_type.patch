@@ -1,0 +1,158 @@
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH RFC 14/14] mm: conditional check of pfn in pte_flush_type
+From: Nadav Amit <nadav.amit@gmail.com>
+Date: Mon, 18 Jul 2022 05:02:12 -0700
+Message-Id: <20220718120212.3180-15-namit@vmware.com>
+To: linux-mm@kvack.org
+Cc: linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Axel Rasmussen <axelrasmussen@google.com>, Nadav Amit <namit@vmware.com>, Andrea Arcangeli <aarcange@redhat.com>, Andrew Cooper <andrew.cooper3@citrix.com>, Andy Lutomirski <luto@kernel.org>, Dave Hansen <dave.hansen@linux.intel.com>, David Hildenbrand <david@redhat.com>, Peter Xu <peterx@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, Yu Zhao <yuzhao@google.com>, Nick Piggin <npiggin@gmail.com>
+In-Reply-To: <20220718120212.3180-1-namit@vmware.com>
+References: <20220718120212.3180-1-namit@vmware.com>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+From: Nadav Amit <namit@vmware.com>
+
+Checking whether PFNs in two PTEs are the same takes surprisingly large
+number of instructions. Yet in fact, in most cases the caller to
+pte_flush_type() already knows if the PFN was changed. For instance,
+mprotect() does not change the PFN, but only modifies the protection
+flags.
+
+Add argument to pte_flush_type() to indicate whether the PFN should be
+checked. Keep checking it in mm-debug to see if some caller was wrong to
+assume the PFN is the same.
+
+Cc: Andrea Arcangeli <aarcange@redhat.com>
+Cc: Andrew Cooper <andrew.cooper3@citrix.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Dave Hansen <dave.hansen@linux.intel.com>
+Cc: David Hildenbrand <david@redhat.com>
+Cc: Peter Xu <peterx@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Will Deacon <will@kernel.org>
+Cc: Yu Zhao <yuzhao@google.com>
+Cc: Nick Piggin <npiggin@gmail.com>
+Signed-off-by: Nadav Amit <namit@vmware.com>
+---
+ arch/x86/include/asm/tlbflush.h | 14 ++++++++++----
+ include/asm-generic/tlb.h       |  6 ++++--
+ mm/huge_memory.c                |  2 +-
+ mm/mprotect.c                   |  2 +-
+ mm/rmap.c                       |  2 +-
+ 5 files changed, 17 insertions(+), 9 deletions(-)
+
+diff --git a/arch/x86/include/asm/tlbflush.h b/arch/x86/include/asm/tlbflush.h
+index 111111111..111111111 100644
+--- a/arch/x86/include/asm/tlbflush.h
++++ b/arch/x86/include/asm/tlbflush.h
+@@ -340,14 +340,17 @@ static inline enum pte_flush_type pte_flags_flush_type(unsigned long oldflags,
+  * whether a strict or relaxed TLB flush is need. It should only be used on
+  * userspace PTEs.
+  */
+-static inline enum pte_flush_type pte_flush_type(pte_t oldpte, pte_t newpte)
++static inline enum pte_flush_type pte_flush_type(pte_t oldpte, pte_t newpte,
++						   bool check_pfn)
+ {
+ 	/* !PRESENT -> * ; no need for flush */
+ 	if (!(pte_flags(oldpte) & _PAGE_PRESENT))
+ 		return PTE_FLUSH_NONE;
+ 
+ 	/* PFN changed ; needs flush */
+-	if (pte_pfn(oldpte) != pte_pfn(newpte))
++	if (!check_pfn)
++		VM_BUG_ON(pte_pfn(oldpte) != pte_pfn(newpte));
++	else if (pte_pfn(oldpte) != pte_pfn(newpte))
+ 		return PTE_FLUSH_STRICT;
+ 
+ 	/*
+@@ -363,14 +366,17 @@ static inline enum pte_flush_type pte_flush_type(pte_t oldpte, pte_t newpte)
+  * huge_pmd_flush_type() checks whether permissions were demoted and require a
+  * flush. It should only be used for userspace huge PMDs.
+  */
+-static inline enum pte_flush_type huge_pmd_flush_type(pmd_t oldpmd, pmd_t newpmd)
++static inline enum pte_flush_type huge_pmd_flush_type(pmd_t oldpmd, pmd_t newpmd,
++						      bool check_pfn)
+ {
+ 	/* !PRESENT -> * ; no need for flush */
+ 	if (!(pmd_flags(oldpmd) & _PAGE_PRESENT))
+ 		return PTE_FLUSH_NONE;
+ 
+ 	/* PFN changed ; needs flush */
+-	if (pmd_pfn(oldpmd) != pmd_pfn(newpmd))
++	if (!check_pfn)
++		VM_BUG_ON(pmd_pfn(oldpmd) != pmd_pfn(newpmd));
++	else if (pmd_pfn(oldpmd) != pmd_pfn(newpmd))
+ 		return PTE_FLUSH_STRICT;
+ 
+ 	/*
+diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
+index 111111111..111111111 100644
+--- a/include/asm-generic/tlb.h
++++ b/include/asm-generic/tlb.h
+@@ -677,14 +677,16 @@ static inline void tlb_flush_p4d_range(struct mmu_gather *tlb,
+ #endif
+ 
+ #ifndef pte_flush_type
+-static inline struct pte_flush_type pte_flush_type(pte_t oldpte, pte_t newpte)
++static inline struct pte_flush_type pte_flush_type(pte_t oldpte, pte_t newpte,
++						   bool check_pfn)
+ {
+ 	return PTE_FLUSH_STRICT;
+ }
+ #endif
+ 
+ #ifndef huge_pmd_flush_type
+-static inline bool huge_pmd_flush_type(pmd_t oldpmd, pmd_t newpmd)
++static inline bool huge_pmd_flush_type(pmd_t oldpmd, pmd_t newpmd,
++				       bool check_pfn)
+ {
+ 	return PTE_FLUSH_STRICT;
+ }
+diff --git a/mm/huge_memory.c b/mm/huge_memory.c
+index 111111111..111111111 100644
+--- a/mm/huge_memory.c
++++ b/mm/huge_memory.c
+@@ -1823,7 +1823,7 @@ int change_huge_pmd(struct mmu_gather *tlb, struct vm_area_struct *vma,
+ 
+ 	flush_type = PTE_FLUSH_STRICT;
+ 	if (!tlb->strict)
+-		flush_type = huge_pmd_flush_type(oldpmd, entry);
++		flush_type = huge_pmd_flush_type(oldpmd, entry, false);
+ 	if (flush_type != PTE_FLUSH_NONE)
+ 		tlb_flush_pmd_range(tlb, addr, HPAGE_PMD_SIZE,
+ 				    flush_type == PTE_FLUSH_STRICT);
+diff --git a/mm/mprotect.c b/mm/mprotect.c
+index 111111111..111111111 100644
+--- a/mm/mprotect.c
++++ b/mm/mprotect.c
+@@ -204,7 +204,7 @@ static unsigned long change_pte_range(struct mmu_gather *tlb,
+ 
+ 			flush_type = PTE_FLUSH_STRICT;
+ 			if (!tlb->strict)
+-				flush_type = pte_flush_type(oldpte, ptent);
++				flush_type = pte_flush_type(oldpte, ptent, false);
+ 			if (flush_type != PTE_FLUSH_NONE)
+ 				tlb_flush_pte_range(tlb, addr, PAGE_SIZE,
+ 						flush_type == PTE_FLUSH_STRICT);
+diff --git a/mm/rmap.c b/mm/rmap.c
+index 111111111..111111111 100644
+--- a/mm/rmap.c
++++ b/mm/rmap.c
+@@ -980,7 +980,7 @@ static int page_vma_mkclean_one(struct page_vma_mapped_walk *pvmw)
+ 			entry = pte_wrprotect(oldpte);
+ 			entry = pte_mkclean(entry);
+ 
+-			if (pte_flush_type(oldpte, entry) != PTE_FLUSH_NONE ||
++			if (pte_flush_type(oldpte, entry, false) != PTE_FLUSH_NONE ||
+ 			    mm_tlb_flush_pending(vma->vm_mm))
+ 				flush_tlb_page(vma, address);
+ 
+
+-- 
+
+2.37.1
+

@@ -212,10 +212,10 @@ Signed-off-by: Ankur Arora <ankur.a.arora@oracle.com>
  2 files changed, 43 insertions(+), 31 deletions(-)
 
 diff --git a/tools/arch/x86/lib/memset_64.S b/tools/arch/x86/lib/memset_64.S
-index 9827ae267f96..ef2a091563d9 100644
+index 1111111..1111111 100644
 --- a/tools/arch/x86/lib/memset_64.S
 +++ b/tools/arch/x86/lib/memset_64.S
-@@ -25,7 +25,7 @@ SYM_FUNC_START(__memset)
+@@ -24,7 +24,7 @@ SYM_FUNC_START(__memset)
  	 *
  	 * Otherwise, use original memset function.
  	 */
@@ -225,7 +225,7 @@ index 9827ae267f96..ef2a091563d9 100644
  
  	movq %rdi,%r9
 @@ -66,7 +66,8 @@ SYM_FUNC_START_LOCAL(memset_erms)
- 	ret
+ 	RET
  SYM_FUNC_END(memset_erms)
  
 -SYM_FUNC_START_LOCAL(memset_orig)
@@ -312,7 +312,7 @@ index 9827ae267f96..ef2a091563d9 100644
 +	sfence
 +	.endif
  	movq	%r10,%rax
- 	ret
+ 	RET
  
 -.Lbad_alignment:
 +.Lbad_alignment_\@:
@@ -335,7 +335,7 @@ index 9827ae267f96..ef2a091563d9 100644
 +MEMSET_MOV OP=movq fence=0
 +MEMSET_MOV OP=movnti fence=1
 diff --git a/tools/perf/bench/mem-memset-x86-64-asm-def.h b/tools/perf/bench/mem-memset-x86-64-asm-def.h
-index dac6d2b7c39b..53ead7f91313 100644
+index 1111111..1111111 100644
 --- a/tools/perf/bench/mem-memset-x86-64-asm-def.h
 +++ b/tools/perf/bench/mem-memset-x86-64-asm-def.h
 @@ -1,6 +1,6 @@

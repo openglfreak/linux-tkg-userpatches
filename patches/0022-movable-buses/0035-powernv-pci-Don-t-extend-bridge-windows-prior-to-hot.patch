@@ -1,0 +1,52 @@
+From 405081097b2e4348af6fd0c948b93714d2682ca9 Mon Sep 17 00:00:00 2001
+From: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+Date: Wed, 13 May 2020 13:09:18 +0300
+Subject: [PATCH 35/57] powernv/pci: Don't extend bridge windows prior to
+ hotplug
+
+If BARs are allowed to move, reserving space for hotplug is not needed
+anymore, the PCI subsystem will expand bridge windows if needed.
+
+Don't extend bridge windows further, otherwise it leads to instersecting
+with BARs:
+
+  3fe800000000-3fe87ffeffff : /pciex@3fffe41000000
+    3fe800000000-3fe87fefffff : PCI Bus 0020:01
+      3fe800000000-3fe87fefffff : PCI Bus 0020:02
+                   ^^^^^^^^^^^^
+        3fe800000000-3fe8017fffff : PCI Bus 0020:03
+          ...
+      3fe801800000-3fe80183ffff : 0020:01:00.0
+      ^^^^^^^^^^^^
+
+, instead of a correct assignment:
+
+  3fe800000000-3fe87ffeffff : /pciex@3fffe41000000
+    3fe800000000-3fe8017fffff : PCI Bus 0020:01
+      3fe800000000-3fe800ffffff : PCI Bus 0020:02
+                   ^^^^^^^^^^^^
+        3fe800000000-3fe800ffffff : PCI Bus 0020:03
+          ...
+      3fe801000000-3fe80103ffff : 0020:01:00.0
+      ^^^^^^^^^^^^
+
+Signed-off-by: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+---
+ arch/powerpc/platforms/powernv/pci-ioda.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/arch/powerpc/platforms/powernv/pci-ioda.c b/arch/powerpc/platforms/powernv/pci-ioda.c
+index 111111111..111111111 100644
+--- a/arch/powerpc/platforms/powernv/pci-ioda.c
++++ b/arch/powerpc/platforms/powernv/pci-ioda.c
+@@ -2547,6 +2547,9 @@ static void pnv_pci_fixup_bridge_resources(struct pci_bus *bus,
+ 	bool msi_region = false;
+ 	int i;
+ 
++	if (pci_can_move_bars)
++		return;
++
+ 	/* Check if we need apply fixup to the bridge's windows */
+ 	if (!pci_is_root_bus(bridge->bus) &&
+ 	    !pci_is_root_bus(bridge->bus->self->bus))
+

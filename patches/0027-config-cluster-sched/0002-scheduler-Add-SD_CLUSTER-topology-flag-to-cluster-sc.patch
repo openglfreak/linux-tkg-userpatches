@@ -1,0 +1,80 @@
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH 2/5] scheduler: Add SD_CLUSTER topology flag to cluster sched domain
+From: Tim Chen <tim.c.chen@linux.intel.com>
+Date: Fri, 03 Dec 2021 12:32:39 -0800
+Message-Id: <efda38b9a2c629aa7270aeba0e65ae420383bdb7.1638563225.git.tim.c.chen@linux.intel.com>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Tim Chen <tim.c.chen@linux.intel.com>, Arjan Van De Ven <arjan.van.de.ven@intel.com>, Ricardo Neri <ricardo.neri@intel.com>, Len Brown <len.brown@intel.com>, Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com>, Artem Bityutskiy <artem.bityutskiy@linux.intel.com>, Chen Yu <yu.c.chen@intel.com>, Song Bao Hua <song.bao.hua@hisilicon.com>, yangyicong <yangyicong@huawei.com>, Michael Larabel <Michael@MichaelLarabel.com>, linux-kernel@vger.kernel.org
+In-Reply-To: <cover.1638563225.git.tim.c.chen@linux.intel.com>
+References: <cover.1638563225.git.tim.c.chen@linux.intel.com>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Add SD_CLUSTER to flag cluster sched domain topology.
+
+Scheduler needs to know if a topology level is at cluster level. It can
+then decide if cluster sched domain should be built based on boot or run
+time configuration specified in next patch.
+
+Signed-off-by: Tim Chen <tim.c.chen@linux.intel.com>
+---
+ include/linux/sched/sd_flags.h | 7 +++++++
+ include/linux/sched/topology.h | 2 +-
+ kernel/sched/topology.c        | 3 +++
+ 3 files changed, 11 insertions(+), 1 deletion(-)
+
+diff --git a/include/linux/sched/sd_flags.h b/include/linux/sched/sd_flags.h
+index 111111111..111111111 100644
+--- a/include/linux/sched/sd_flags.h
++++ b/include/linux/sched/sd_flags.h
+@@ -164,3 +164,10 @@ SD_FLAG(SD_OVERLAP, SDF_SHARED_PARENT | SDF_NEEDS_GROUPS)
+  * NEEDS_GROUPS: No point in preserving domain if it has a single group.
+  */
+ SD_FLAG(SD_NUMA, SDF_SHARED_PARENT | SDF_NEEDS_GROUPS)
++
++/*
++ * Domain members in the same CPU cluster
++ *
++ * NEEDS_GROUPS: Cluster resroucres are shared between groups.
++ */
++SD_FLAG(SD_CLUSTER, SDF_NEEDS_GROUPS)
+diff --git a/include/linux/sched/topology.h b/include/linux/sched/topology.h
+index 111111111..111111111 100644
+--- a/include/linux/sched/topology.h
++++ b/include/linux/sched/topology.h
+@@ -45,7 +45,7 @@ static inline int cpu_smt_flags(void)
+ #ifdef CONFIG_SCHED_CLUSTER
+ static inline int cpu_cluster_flags(void)
+ {
+-	return SD_SHARE_PKG_RESOURCES;
++	return SD_CLUSTER | SD_SHARE_PKG_RESOURCES;
+ }
+ #endif
+ 
+diff --git a/kernel/sched/topology.c b/kernel/sched/topology.c
+index 111111111..111111111 100644
+--- a/kernel/sched/topology.c
++++ b/kernel/sched/topology.c
+@@ -1522,6 +1522,8 @@ static struct cpumask		***sched_domains_numa_masks;
+  * function:
+  *
+  *   SD_SHARE_CPUCAPACITY   - describes SMT topologies
++ *   SD_CLUSTER             - describes multiple CPU clusters in a
++ *                            last level cache
+  *   SD_SHARE_PKG_RESOURCES - describes shared caches
+  *   SD_NUMA                - describes NUMA topologies
+  *
+@@ -1532,6 +1534,7 @@ static struct cpumask		***sched_domains_numa_masks;
+  */
+ #define TOPOLOGY_SD_FLAGS		\
+ 	(SD_SHARE_CPUCAPACITY	|	\
++	 SD_CLUSTER		|	\
+ 	 SD_SHARE_PKG_RESOURCES |	\
+ 	 SD_NUMA		|	\
+ 	 SD_ASYM_PACKING)
+
+-- 
+2.37.1
+

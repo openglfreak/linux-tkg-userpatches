@@ -1,0 +1,156 @@
+From d12cc03cc82edbccd7bd10afdc8a2fdbd2ba2dce Mon Sep 17 00:00:00 2001
+From: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+Date: Wed, 13 May 2020 13:09:00 +0300
+Subject: [PATCH 32/57] powernv/pci: Access PCI config space directly w/o
+ pci_dn
+
+To fetch an updated DT for the newly hotplugged device, OS must explicitly
+request it from the firmware via the pnv_php driver.
+
+If pnv_php wasn't triggered/loaded, it is still possible to discover new
+devices if PCIe I/O will not stop in absence of the pci_dn structure.
+
+Reviewed-by: Oliver O'Halloran <oohall@gmail.com>
+Signed-off-by: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+---
+ arch/powerpc/platforms/powernv/pci.c | 61 ++++++++++++++++++----------
+ 1 file changed, 40 insertions(+), 21 deletions(-)
+
+diff --git a/arch/powerpc/platforms/powernv/pci.c b/arch/powerpc/platforms/powernv/pci.c
+index 111111111..111111111 100644
+--- a/arch/powerpc/platforms/powernv/pci.c
++++ b/arch/powerpc/platforms/powernv/pci.c
+@@ -582,30 +582,28 @@ static void pnv_pci_config_check_eeh(struct pci_dn *pdn)
+ 	}
+ }
+ 
+-int pnv_pci_cfg_read(struct pci_dn *pdn,
+-		     int where, int size, u32 *val)
++static int pnv_pci_cfg_read_raw(u64 phb_id, int busno, unsigned int devfn,
++				int where, int size, u32 *val)
+ {
+-	struct pnv_phb *phb = pdn->phb->private_data;
+-	u32 bdfn = (pdn->busno << 8) | pdn->devfn;
++	u32 bdfn = (busno << 8) | devfn;
+ 	s64 rc;
+ 
+ 	switch (size) {
+ 	case 1: {
+ 		u8 v8;
+-		rc = opal_pci_config_read_byte(phb->opal_id, bdfn, where, &v8);
++		rc = opal_pci_config_read_byte(phb_id, bdfn, where, &v8);
+ 		*val = (rc == OPAL_SUCCESS) ? v8 : 0xff;
+ 		break;
+ 	}
+ 	case 2: {
+ 		__be16 v16;
+-		rc = opal_pci_config_read_half_word(phb->opal_id, bdfn, where,
+-						   &v16);
++		rc = opal_pci_config_read_half_word(phb_id, bdfn, where, &v16);
+ 		*val = (rc == OPAL_SUCCESS) ? be16_to_cpu(v16) : 0xffff;
+ 		break;
+ 	}
+ 	case 4: {
+ 		__be32 v32;
+-		rc = opal_pci_config_read_word(phb->opal_id, bdfn, where, &v32);
++		rc = opal_pci_config_read_word(phb_id, bdfn, where, &v32);
+ 		*val = (rc == OPAL_SUCCESS) ? be32_to_cpu(v32) : 0xffffffff;
+ 		break;
+ 	}
+@@ -614,27 +612,26 @@ int pnv_pci_cfg_read(struct pci_dn *pdn,
+ 	}
+ 
+ 	pr_devel("%s: bus: %x devfn: %x +%x/%x -> %08x\n",
+-		 __func__, pdn->busno, pdn->devfn, where, size, *val);
++		 __func__, busno, devfn, where, size, *val);
+ 	return PCIBIOS_SUCCESSFUL;
+ }
+ 
+-int pnv_pci_cfg_write(struct pci_dn *pdn,
+-		      int where, int size, u32 val)
++static int pnv_pci_cfg_write_raw(u64 phb_id, int busno, unsigned int devfn,
++				 int where, int size, u32 val)
+ {
+-	struct pnv_phb *phb = pdn->phb->private_data;
+-	u32 bdfn = (pdn->busno << 8) | pdn->devfn;
++	u32 bdfn = (busno << 8) | devfn;
+ 
+ 	pr_devel("%s: bus: %x devfn: %x +%x/%x -> %08x\n",
+-		 __func__, pdn->busno, pdn->devfn, where, size, val);
++		 __func__, busno, devfn, where, size, val);
+ 	switch (size) {
+ 	case 1:
+-		opal_pci_config_write_byte(phb->opal_id, bdfn, where, val);
++		opal_pci_config_write_byte(phb_id, bdfn, where, val);
+ 		break;
+ 	case 2:
+-		opal_pci_config_write_half_word(phb->opal_id, bdfn, where, val);
++		opal_pci_config_write_half_word(phb_id, bdfn, where, val);
+ 		break;
+ 	case 4:
+-		opal_pci_config_write_word(phb->opal_id, bdfn, where, val);
++		opal_pci_config_write_word(phb_id, bdfn, where, val);
+ 		break;
+ 	default:
+ 		return PCIBIOS_FUNC_NOT_SUPPORTED;
+@@ -643,6 +640,24 @@ int pnv_pci_cfg_write(struct pci_dn *pdn,
+ 	return PCIBIOS_SUCCESSFUL;
+ }
+ 
++int pnv_pci_cfg_read(struct pci_dn *pdn,
++		     int where, int size, u32 *val)
++{
++	struct pnv_phb *phb = pdn->phb->private_data;
++
++	return pnv_pci_cfg_read_raw(phb->opal_id, pdn->busno, pdn->devfn,
++				    where, size, val);
++}
++
++int pnv_pci_cfg_write(struct pci_dn *pdn,
++		      int where, int size, u32 val)
++{
++	struct pnv_phb *phb = pdn->phb->private_data;
++
++	return pnv_pci_cfg_write_raw(phb->opal_id, pdn->busno, pdn->devfn,
++				     where, size, val);
++}
++
+ #ifdef CONFIG_EEH
+ static bool pnv_pci_cfg_check(struct pci_dn *pdn)
+ {
+@@ -678,13 +693,15 @@ static int pnv_pci_read_config(struct pci_bus *bus,
+ 			       int where, int size, u32 *val)
+ {
+ 	struct pci_dn *pdn;
+-	struct pnv_phb *phb;
++	struct pci_controller *hose = pci_bus_to_host(bus);
++	struct pnv_phb *phb = hose->private_data;
+ 	int ret;
+ 
+ 	*val = 0xFFFFFFFF;
+ 	pdn = pci_get_pdn_by_devfn(bus, devfn);
+ 	if (!pdn)
+-		return PCIBIOS_DEVICE_NOT_FOUND;
++		return pnv_pci_cfg_read_raw(phb->opal_id, bus->number, devfn,
++					    where, size, val);
+ 
+ 	if (!pnv_pci_cfg_check(pdn))
+ 		return PCIBIOS_DEVICE_NOT_FOUND;
+@@ -707,12 +724,14 @@ static int pnv_pci_write_config(struct pci_bus *bus,
+ 				int where, int size, u32 val)
+ {
+ 	struct pci_dn *pdn;
+-	struct pnv_phb *phb;
++	struct pci_controller *hose = pci_bus_to_host(bus);
++	struct pnv_phb *phb = hose->private_data;
+ 	int ret;
+ 
+ 	pdn = pci_get_pdn_by_devfn(bus, devfn);
+ 	if (!pdn)
+-		return PCIBIOS_DEVICE_NOT_FOUND;
++		return pnv_pci_cfg_write_raw(phb->opal_id, bus->number, devfn,
++					     where, size, val);
+ 
+ 	if (!pnv_pci_cfg_check(pdn))
+ 		return PCIBIOS_DEVICE_NOT_FOUND;
+

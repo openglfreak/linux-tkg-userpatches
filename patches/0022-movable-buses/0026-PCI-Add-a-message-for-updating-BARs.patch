@@ -1,0 +1,61 @@
+From 35fda49e6d3996fb169560dc0c4c823897c6456d Mon Sep 17 00:00:00 2001
+From: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+Date: Fri, 18 Dec 2020 16:47:38 +0300
+Subject: [PATCH 26/57] PCI: Add a message for updating BARs
+
+Add a new debug message for changing a BAR value of a device:
+
+[    1.851161] pci 0003:0a:00.1: BAR 0 updated: 0x60200c2000000 -> 0x6020142000000
+
+Signed-off-by: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+---
+ drivers/pci/setup-res.c | 14 +++++++++++++-
+ 1 file changed, 13 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/pci/setup-res.c b/drivers/pci/setup-res.c
+index 111111111..111111111 100644
+--- a/drivers/pci/setup-res.c
++++ b/drivers/pci/setup-res.c
+@@ -27,7 +27,8 @@ static void pci_std_update_resource(struct pci_dev *dev, int resno)
+ 	struct pci_bus_region region;
+ 	bool disable;
+ 	u16 cmd;
+-	u32 new, check, mask;
++	u32 new, check, mask, old;
++	u64 old_start;
+ 	int reg;
+ 	struct resource *res = dev->resource + resno;
+ 
+@@ -100,6 +101,9 @@ static void pci_std_update_resource(struct pci_dev *dev, int resno)
+ 				      cmd & ~PCI_COMMAND_MEMORY);
+ 	}
+ 
++	pci_read_config_dword(dev, reg, &old);
++	old_start = old & mask;
++
+ 	pci_write_config_dword(dev, reg, new);
+ 	pci_read_config_dword(dev, reg, &check);
+ 
+@@ -109,6 +113,9 @@ static void pci_std_update_resource(struct pci_dev *dev, int resno)
+ 	}
+ 
+ 	if (res->flags & IORESOURCE_MEM_64) {
++		pci_read_config_dword(dev, reg + 4, &old);
++		old_start |= (u64)old << 32;
++
+ 		new = region.start >> 16 >> 16;
+ 		pci_write_config_dword(dev, reg + 4, new);
+ 		pci_read_config_dword(dev, reg + 4, &check);
+@@ -120,6 +127,11 @@ static void pci_std_update_resource(struct pci_dev *dev, int resno)
+ 
+ 	if (disable)
+ 		pci_write_config_word(dev, PCI_COMMAND, cmd);
++
++	if (old_start != region.start)
++		pci_info(dev, "BAR %d updated: %#llx -> %#llx\n", resno,
++			 (unsigned long long)old_start,
++			 (unsigned long long)region.start);
+ }
+ 
+ void pci_update_resource(struct pci_dev *dev, int resno)
+

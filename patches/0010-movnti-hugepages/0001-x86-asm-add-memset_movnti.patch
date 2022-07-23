@@ -176,10 +176,10 @@ Signed-off-by: Ankur Arora <ankur.a.arora@oracle.com>
  1 file changed, 38 insertions(+), 30 deletions(-)
 
 diff --git a/arch/x86/lib/memset_64.S b/arch/x86/lib/memset_64.S
-index 9827ae267f96..ef2a091563d9 100644
+index 1111111..1111111 100644
 --- a/arch/x86/lib/memset_64.S
 +++ b/arch/x86/lib/memset_64.S
-@@ -25,7 +25,7 @@ SYM_FUNC_START(__memset)
+@@ -24,7 +24,7 @@ SYM_FUNC_START(__memset)
  	 *
  	 * Otherwise, use original memset function.
  	 */
@@ -189,7 +189,7 @@ index 9827ae267f96..ef2a091563d9 100644
  
  	movq %rdi,%r9
 @@ -66,7 +66,8 @@ SYM_FUNC_START_LOCAL(memset_erms)
- 	ret
+ 	RET
  SYM_FUNC_END(memset_erms)
  
 -SYM_FUNC_START_LOCAL(memset_orig)
@@ -276,7 +276,7 @@ index 9827ae267f96..ef2a091563d9 100644
 +	sfence
 +	.endif
  	movq	%r10,%rax
- 	ret
+ 	RET
  
 -.Lbad_alignment:
 +.Lbad_alignment_\@:

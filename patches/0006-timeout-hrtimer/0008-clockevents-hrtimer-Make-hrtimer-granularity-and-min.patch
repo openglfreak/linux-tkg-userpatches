@@ -7,28 +7,26 @@ Subject: [PATCH 8/8] clockevents, hrtimer: Make hrtimer granularity and
 
 Signed-off-by: Alexandre Frade <kernel@xanmod.org>
 ---
- kernel/sysctl.c           | 22 ++++++++++++++++--
+ kernel/sysctl.c           | 21 +++++++++++++++++
  kernel/time/clockevents.c |  3 ++-
  kernel/time/hrtimer.c     | 49 +++++++++++++++++++++++++++++++++++----
- 3 files changed, 67 insertions(+), 7 deletions(-)
+ 3 files changed, 68 insertions(+), 5 deletions(-)
 
 diff --git a/kernel/sysctl.c b/kernel/sysctl.c
-index 272f4a272f8cf..cf9a0519f67bf 100644
+index 1111111..1111111 100644
 --- a/kernel/sysctl.c
 +++ b/kernel/sysctl.c
-@@ -122,9 +122,9 @@ static unsigned long long_max = LONG_MAX;
- static int __maybe_unused zero = 0;
- extern int sched_yield_type;
+@@ -89,6 +89,9 @@ extern int unprivileged_userns_clone;
  #endif
--#ifdef CONFIG_PRINTK
- static int ten_thousand = 10000;
--#endif
+ /* Constants used for minimum and  maximum */
+ 
++static int ten_thousand = 10000;
 +extern int hrtimer_granularity_us;
 +extern int hrtimeout_min_us;
  #ifdef CONFIG_PERF_EVENTS
- static int six_hundred_forty_kb = 640 * 1024;
+ static const int six_hundred_forty_kb = 640 * 1024;
  #endif
-@@ -1730,6 +1730,24 @@ int proc_do_static_key(struct ctl_table *table, int write,
+@@ -1593,6 +1596,24 @@ int proc_do_static_key(struct ctl_table *table, int write,
  }
  
  static struct ctl_table kern_table[] = {
@@ -50,11 +48,11 @@ index 272f4a272f8cf..cf9a0519f67bf 100644
 +		.extra1		= SYSCTL_ONE,
 +		.extra2		= &ten_thousand,
 +	},
- #ifdef CONFIG_SCHED_ALT
- /* In ALT, only supported "sched_schedstats" */
- #ifdef CONFIG_SCHED_DEBUG
+ #ifdef CONFIG_NUMA_BALANCING
+ 	{
+ 		.procname	= "numa_balancing",
 diff --git a/kernel/time/clockevents.c b/kernel/time/clockevents.c
-index 003ccf338d201..45fdd88fe9330 100644
+index 1111111..1111111 100644
 --- a/kernel/time/clockevents.c
 +++ b/kernel/time/clockevents.c
 @@ -190,8 +190,9 @@ int clockevents_tick_resume(struct clock_event_device *dev)
@@ -69,10 +67,10 @@ index 003ccf338d201..45fdd88fe9330 100644
  /**
   * clockevents_increase_min_delta - raise minimum delta of a clock event device
 diff --git a/kernel/time/hrtimer.c b/kernel/time/hrtimer.c
-index dd8dd73da8e0e..95d4f24b3afca 100644
+index 1111111..1111111 100644
 --- a/kernel/time/hrtimer.c
 +++ b/kernel/time/hrtimer.c
-@@ -2244,7 +2244,7 @@ EXPORT_SYMBOL_GPL(schedule_hrtimeout);
+@@ -2392,7 +2392,7 @@ EXPORT_SYMBOL_GPL(schedule_hrtimeout);
  long __sched schedule_msec_hrtimeout(long timeout)
  {
  	struct hrtimer_sleeper t;
@@ -81,7 +79,7 @@ index dd8dd73da8e0e..95d4f24b3afca 100644
  	ktime_t expires;
  
  	if (!timeout) {
-@@ -2261,9 +2261,8 @@ long __sched schedule_msec_hrtimeout(long timeout)
+@@ -2409,9 +2409,8 @@ long __sched schedule_msec_hrtimeout(long timeout)
  	if (jiffs > 4 || hrtimer_resolution >= NSEC_PER_SEC / HZ || pm_freezing)
  		return schedule_timeout(jiffs);
  
@@ -92,7 +90,7 @@ index dd8dd73da8e0e..95d4f24b3afca 100644
  
  	hrtimer_init_sleeper_on_stack(&t, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
  	hrtimer_set_expires_range_ns(&t.timer, expires, delta);
-@@ -2285,9 +2284,51 @@ long __sched schedule_msec_hrtimeout(long timeout)
+@@ -2433,9 +2432,51 @@ long __sched schedule_msec_hrtimeout(long timeout)
  
  EXPORT_SYMBOL(schedule_msec_hrtimeout);
  

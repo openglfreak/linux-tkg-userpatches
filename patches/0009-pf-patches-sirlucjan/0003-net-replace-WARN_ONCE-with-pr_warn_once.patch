@@ -39,7 +39,7 @@ Signed-off-by: Oleksandr Natalenko <oleksandr@natalenko.name>
  1 file changed, 2 insertions(+), 1 deletion(-)
 
 diff --git a/net/core/netpoll.c b/net/core/netpoll.c
-index edfc0f801..7aaaeec08 100644
+index 1111111..1111111 100644
 --- a/net/core/netpoll.c
 +++ b/net/core/netpoll.c
 @@ -152,7 +152,8 @@ static void poll_one_napi(struct napi_struct *napi)
@@ -53,5 +53,5 @@ index edfc0f801..7aaaeec08 100644
  
  	clear_bit(NAPI_STATE_NPSVC, &napi->state);
 -- 
-2.33.1.711.g9d530dc002
+2.37.1
 

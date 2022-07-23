@@ -1,0 +1,65 @@
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH 1/5] scheduler: Create SDTL_SKIP flag to skip topology level
+From: Tim Chen <tim.c.chen@linux.intel.com>
+Date: Fri, 03 Dec 2021 12:32:38 -0800
+Message-Id: <d6fe1f8972520f64c7e23d7e72fa298823813c6d.1638563225.git.tim.c.chen@linux.intel.com>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Tim Chen <tim.c.chen@linux.intel.com>, Arjan Van De Ven <arjan.van.de.ven@intel.com>, Ricardo Neri <ricardo.neri@intel.com>, Len Brown <len.brown@intel.com>, Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com>, Artem Bityutskiy <artem.bityutskiy@linux.intel.com>, Chen Yu <yu.c.chen@intel.com>, Song Bao Hua <song.bao.hua@hisilicon.com>, yangyicong <yangyicong@huawei.com>, Michael Larabel <Michael@MichaelLarabel.com>, linux-kernel@vger.kernel.org
+In-Reply-To: <cover.1638563225.git.tim.c.chen@linux.intel.com>
+References: <cover.1638563225.git.tim.c.chen@linux.intel.com>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+A system admin may not want to use cluster scheduling.  Make changes to
+allow cluster topology level to be skipped when building sched domains.
+
+Create SDTL_SKIP bit on the sched_domain_topology_level flag so we can
+check if the cluster topology level should be skipped when building
+sched domains.
+
+Signed-off-by: Tim Chen <tim.c.chen@linux.intel.com>
+---
+ include/linux/sched/topology.h |  1 +
+ kernel/sched/topology.c        | 10 +++++++++-
+ 2 files changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/include/linux/sched/topology.h b/include/linux/sched/topology.h
+index 111111111..111111111 100644
+--- a/include/linux/sched/topology.h
++++ b/include/linux/sched/topology.h
+@@ -244,6 +244,7 @@ typedef const struct cpumask *(*sched_domain_mask_f)(int cpu);
+ typedef int (*sched_domain_flags_f)(void);
+ 
+ #define SDTL_OVERLAP	0x01
++#define SDTL_SKIP	0x02
+ 
+ struct sd_data {
+ 	struct sched_domain *__percpu *sd;
+diff --git a/kernel/sched/topology.c b/kernel/sched/topology.c
+index 111111111..111111111 100644
+--- a/kernel/sched/topology.c
++++ b/kernel/sched/topology.c
+@@ -1681,8 +1681,16 @@ static struct sched_domain_topology_level *sched_domain_topology =
+ 	default_topology;
+ static struct sched_domain_topology_level *sched_domain_topology_saved;
+ 
++static struct sched_domain_topology_level *next_tl(struct sched_domain_topology_level *tl)
++{
++	++tl;
++	while (tl->mask && tl->flags & SDTL_SKIP)
++		++tl;
++	return tl;
++}
++
+ #define for_each_sd_topology(tl)			\
+-	for (tl = sched_domain_topology; tl->mask; tl++)
++	for (tl = sched_domain_topology; tl->mask; tl = next_tl(tl))
+ 
+ void set_sched_topology(struct sched_domain_topology_level *tl)
+ {
+
+-- 
+2.37.1
+

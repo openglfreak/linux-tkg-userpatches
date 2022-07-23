@@ -10,14 +10,14 @@ flags to fix this.
 
 Signed-off-by: Seth Forshee <seth.forshee@canonical.com>
 ---
- Makefile | 4 ++++
+ arch/x86/Makefile | 4 ++++
  1 file changed, 4 insertions(+)
 
-diff --git a/Makefile b/Makefile
-index d6b473719..9b947e501 100644
---- a/Makefile
-+++ b/Makefile
-@@ -704,6 +704,10 @@ RETPOLINE_CFLAGS_CLANG := -mretpoline-external-thunk
+diff --git a/arch/x86/Makefile b/arch/x86/Makefile
+index 1111111..1111111 100644
+--- a/arch/x86/Makefile
++++ b/arch/x86/Makefile
+@@ -21,6 +21,10 @@ ifdef CONFIG_CC_IS_CLANG
  RETPOLINE_CFLAGS	:= -mretpoline-external-thunk
  RETPOLINE_VDSO_CFLAGS	:= -mretpoline
  endif
@@ -25,9 +25,9 @@ index d6b473719..9b947e501 100644
 +# latter is disabled
 +RETPOLINE_CFLAGS += $(call cc-option,-fcf-protection=none,)
 +RETPOLINE_VDSO_CFLAGS += $(call cc-option,-fcf-protection=none,)
- export RETPOLINE_CFLAGS
- export RETPOLINE_VDSO_CFLAGS
  
+ ifdef CONFIG_RETHUNK
+ RETHUNK_CFLAGS		:= -mfunction-return=thunk-extern
 -- 
-2.33.0.328.g8b7c11b866
+2.37.1
 

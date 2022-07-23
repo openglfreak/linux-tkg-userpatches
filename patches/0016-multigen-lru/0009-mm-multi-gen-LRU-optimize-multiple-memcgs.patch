@@ -1,0 +1,369 @@
+From patchwork Wed Jul  6 22:00:18 2022
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+X-Patchwork-Submitter: Yu Zhao <yuzhao@google.com>
+X-Patchwork-Id: 12908706
+Return-Path: <owner-linux-mm@kvack.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from kanga.kvack.org (kanga.kvack.org [205.233.56.17])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 4EB4BCCA480
+	for <linux-mm@archiver.kernel.org>; Wed,  6 Jul 2022 22:01:11 +0000 (UTC)
+Received: by kanga.kvack.org (Postfix)
+	id BDBC98E0005; Wed,  6 Jul 2022 18:01:06 -0400 (EDT)
+Received: by kanga.kvack.org (Postfix, from userid 40)
+	id B8B188E0001; Wed,  6 Jul 2022 18:01:06 -0400 (EDT)
+X-Delivered-To: int-list-linux-mm@kvack.org
+Received: by kanga.kvack.org (Postfix, from userid 63042)
+	id A05548E0005; Wed,  6 Jul 2022 18:01:06 -0400 (EDT)
+X-Delivered-To: linux-mm@kvack.org
+Received: from relay.hostedemail.com (smtprelay0011.hostedemail.com
+ [216.40.44.11])
+	by kanga.kvack.org (Postfix) with ESMTP id 8B02E8E0001
+	for <linux-mm@kvack.org>; Wed,  6 Jul 2022 18:01:06 -0400 (EDT)
+Received: from smtpin07.hostedemail.com (a10.router.float.18 [10.200.18.1])
+	by unirelay08.hostedemail.com (Postfix) with ESMTP id 5322D218C7
+	for <linux-mm@kvack.org>; Wed,  6 Jul 2022 22:01:06 +0000 (UTC)
+X-FDA: 79658046132.07.9DE38CF
+Received: from mail-yw1-f201.google.com (mail-yw1-f201.google.com
+ [209.85.128.201])
+	by imf28.hostedemail.com (Postfix) with ESMTP id 97908C0054
+	for <linux-mm@kvack.org>; Wed,  6 Jul 2022 22:01:05 +0000 (UTC)
+Received: by mail-yw1-f201.google.com with SMTP id
+ 00721157ae682-31c8c7138ebso70710887b3.17
+        for <linux-mm@kvack.org>; Wed, 06 Jul 2022 15:01:05 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20210112;
+        h=date:in-reply-to:message-id:mime-version:references:subject:from:to
+         :cc:content-transfer-encoding;
+        bh=ZS7i+zWbsuFYZiRlenI/F/Y7PzZj3Cv3ABmuogIV+d0=;
+        b=Is9nnwDLdoF8cmdhQhl8FEZEIPLZOTCQNPziPrZ3WCv4Hkh+8SM7Qirn2/JzlJe5Qt
+         IMzoKhGVVu62zPGO2f8uqvwVO7ZBpwGEu3Y0nx+xsR+UR6rSMs9BgDYfSl6hxumhEzXQ
+         AVU29P45SCq1drQE+AuDu2NsKyQ+R9NLi2XNN7GjQzGIS59mnKnciabxZ70kUwocqXEh
+         TsuagDSQmmH5SjPkOzOUNm6Sk8f3JEhf7X8a1bPpbg+ozA3KspzkTBjkMrHomLe9ffcm
+         BFgwNEyH9XBgnj0m4gnfT2SYRWWY1k3MsXJMQ+zIJmqc6vDRB4WpYW/qGMJadOFCZfMM
+         nXgA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112;
+        h=x-gm-message-state:date:in-reply-to:message-id:mime-version
+         :references:subject:from:to:cc:content-transfer-encoding;
+        bh=ZS7i+zWbsuFYZiRlenI/F/Y7PzZj3Cv3ABmuogIV+d0=;
+        b=RCS2awk0QPdb9ZH7wNOyKeKXpab1x67IIAx6j5zq56jXzEwz7GXRfLumdFrGKXCGb4
+         Ni9Rp5dJZYzq8bxw94GX64zJKMTSoJ4V+UAQj4zSBLEczJlyZKy/yWOit9ZSOEb0iMvR
+         4+5mHFOU3YS4X1wdcqI8B4TLEOn1Me9mvfoveMAhSf8VHEhQ3neJrM0mY0hrTiGCSK5A
+         J4de3u3SGUe8nuXf8ZpGc38zd9x6oFOeBCUdjka6ao55yXPRLAwyLVnsLaRAKC6md3fT
+         VHJAQ+yfE2vhF9ga9RIwItKKGhAOJVHWoDcC3pQb9GfR0/p6eeP/23lc7iaFdQYywDcG
+         ckOQ==
+X-Gm-Message-State: AJIora9+K81MvAVQpqZj+MVKlE2AQLbnYpnFjbMqoGoc4IJHROymV58Z
+	hBHBT8xaW7KW2eD0IR1+YvgbPP1Vazg=
+X-Google-Smtp-Source: 
+ AGRyM1uwFcCEi/xhgZ0h4sIMbRvSkHm3hRssR6SxZ63hO5m3+xAhe4vRctYY9iQ6nmc/njn1u9BXzW/MiYM=
+X-Received: from yuzhao.bld.corp.google.com
+ ([2620:15c:183:200:b89c:e10a:466e:cf7d])
+ (user=yuzhao job=sendgmr) by 2002:a25:abb3:0:b0:66e:2f9a:4201 with SMTP id
+ v48-20020a25abb3000000b0066e2f9a4201mr26479914ybi.125.1657144864829; Wed, 06
+ Jul 2022 15:01:04 -0700 (PDT)
+Date: Wed,  6 Jul 2022 16:00:18 -0600
+In-Reply-To: <20220706220022.968789-1-yuzhao@google.com>
+Message-Id: <20220706220022.968789-10-yuzhao@google.com>
+Mime-Version: 1.0
+References: <20220706220022.968789-1-yuzhao@google.com>
+X-Mailer: git-send-email 2.37.0.rc0.161.g10f37bed90-goog
+Subject: [PATCH v13 09/14] mm: multi-gen LRU: optimize multiple memcgs
+From: Yu Zhao <yuzhao@google.com>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Andi Kleen <ak@linux.intel.com>,
+ Aneesh Kumar <aneesh.kumar@linux.ibm.com>,
+  Catalin Marinas <catalin.marinas@arm.com>,
+ Dave Hansen <dave.hansen@linux.intel.com>,  Hillf Danton <hdanton@sina.com>,
+ Jens Axboe <axboe@kernel.dk>, Johannes Weiner <hannes@cmpxchg.org>,
+  Jonathan Corbet <corbet@lwn.net>,
+ Linus Torvalds <torvalds@linux-foundation.org>,
+  Matthew Wilcox <willy@infradead.org>, Mel Gorman <mgorman@suse.de>,
+  Michael Larabel <Michael@michaellarabel.com>,
+ Michal Hocko <mhocko@kernel.org>,  Mike Rapoport <rppt@kernel.org>,
+ Peter Zijlstra <peterz@infradead.org>, Tejun Heo <tj@kernel.org>,
+  Vlastimil Babka <vbabka@suse.cz>, Will Deacon <will@kernel.org>,
+ linux-arm-kernel@lists.infradead.org,  linux-doc@vger.kernel.org,
+ linux-kernel@vger.kernel.org, linux-mm@kvack.org,  x86@kernel.org,
+ page-reclaim@google.com, Yu Zhao <yuzhao@google.com>,
+  Brian Geffon <bgeffon@google.com>,
+ Jan Alexander Steffens <heftig@archlinux.org>,
+  Oleksandr Natalenko <oleksandr@natalenko.name>,
+ Steven Barrett <steven@liquorix.net>,
+  Suleiman Souhlal <suleiman@google.com>, Daniel Byrne <djbyrne@mtu.edu>,
+ Donald Carr <d@chaos-reins.com>,
+  " =?utf-8?q?Holger_Hoffst=C3=A4tte?= " <holger@applied-asynchrony.com>,
+ Konstantin Kharlamov <Hi-Angel@yandex.ru>,
+  Shuang Zhai <szhai2@cs.rochester.edu>, Sofia Trinh <sofia.trinh@edi.works>,
+  Vaibhav Jain <vaibhav@linux.ibm.com>
+ARC-Seal: i=1; s=arc-20220608; d=hostedemail.com; t=1657144865; a=rsa-sha256;
+	cv=none;
+	b=q3V8GcW5a7gLdEkDRvzjbN1oCqdl/PcNPOBK/4yn5O6DZ96fhshx4mHlVqwifd6VM/h6DQ
+	bokhlmu8Wk2Z61Pnli47ITBMWiwbyG5GqreBCrRln1NfcGXS0mPhEW7lQeDU+ca5XNHA6R
+	1crW4jbDQ+Ez8oz8X4F5X5OxrI6ddoA=
+ARC-Authentication-Results: i=1;
+	imf28.hostedemail.com;
+	dkim=pass header.d=google.com header.s=20210112 header.b=Is9nnwDL;
+	dmarc=pass (policy=reject) header.from=google.com;
+	spf=pass (imf28.hostedemail.com: domain of
+ 3IAbGYgYKCGEXTYG9NFNNFKD.BNLKHMTW-LLJU9BJ.NQF@flex--yuzhao.bounces.google.com
+ designates 209.85.128.201 as permitted sender)
+ smtp.mailfrom=3IAbGYgYKCGEXTYG9NFNNFKD.BNLKHMTW-LLJU9BJ.NQF@flex--yuzhao.bounces.google.com
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=hostedemail.com;
+	s=arc-20220608; t=1657144865;
+	h=from:from:sender:reply-to:subject:subject:date:date:
+	 message-id:message-id:to:to:cc:cc:mime-version:mime-version:
+	 content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references:dkim-signature;
+	bh=ZS7i+zWbsuFYZiRlenI/F/Y7PzZj3Cv3ABmuogIV+d0=;
+	b=fen/7hqEjb4DZZ+j8OhMLxCTQaBQg1nYoyqyzaLOG2yllRdoXgC8upN+NQjx2/OsQCSFdY
+	tIpgzM/hy9Vb35EZoTXPI0b6U/1kGDSWHJyLMU3CkJKzSF9lMbdGm9UdAtXJ/1dnB/CxlX
+	R3DdBW8MzocpYgtBQDvKhNaIKlqhdRg=
+X-Rspamd-Server: rspam08
+X-Rspamd-Queue-Id: 97908C0054
+X-Rspam-User: 
+Authentication-Results: imf28.hostedemail.com;
+	dkim=pass header.d=google.com header.s=20210112 header.b=Is9nnwDL;
+	dmarc=pass (policy=reject) header.from=google.com;
+	spf=pass (imf28.hostedemail.com: domain of
+ 3IAbGYgYKCGEXTYG9NFNNFKD.BNLKHMTW-LLJU9BJ.NQF@flex--yuzhao.bounces.google.com
+ designates 209.85.128.201 as permitted sender)
+ smtp.mailfrom=3IAbGYgYKCGEXTYG9NFNNFKD.BNLKHMTW-LLJU9BJ.NQF@flex--yuzhao.bounces.google.com
+X-Stat-Signature: xt8apxhnez18ydabrirx1u5kimzk5obt
+X-HE-Tag: 1657144865-519413
+X-Bogosity: Ham, tests=bogofilter, spamicity=0.000000, version=1.2.4
+Sender: owner-linux-mm@kvack.org
+Precedence: bulk
+X-Loop: owner-majordomo@kvack.org
+List-ID: <linux-mm.kvack.org>
+
+When multiple memcgs are available, it is possible to make better
+choices based on generations and tiers and therefore improve the
+overall performance under global memory pressure. This patch adds a
+rudimentary optimization to select memcgs that can drop single-use
+unmapped clean pages first. Doing so reduces the chance of going into
+the aging path or swapping. These two decisions can be costly.
+
+A typical example that benefits from this optimization is a server
+running mixed types of workloads, e.g., heavy anon workload in one
+memcg and heavy buffered I/O workload in the other.
+
+Though this optimization can be applied to both kswapd and direct
+reclaim, it is only added to kswapd to keep the patchset manageable.
+Later improvements will cover the direct reclaim path.
+
+Server benchmark results:
+  Mixed workloads:
+    fio (buffered I/O): +[19, 21]%
+                IOPS         BW
+      patch1-8: 1880k        7343MiB/s
+      patch1-9: 2252k        8796MiB/s
+
+    memcached (anon): +[119, 123]%
+                Ops/sec      KB/sec
+      patch1-8: 862768.65    33514.68
+      patch1-9: 1911022.12   74234.54
+
+  Mixed workloads:
+    fio (buffered I/O): +[75, 77]%
+                IOPS         BW
+      5.19-rc1: 1279k        4996MiB/s
+      patch1-9: 2252k        8796MiB/s
+
+    memcached (anon): +[13, 15]%
+                Ops/sec      KB/sec
+      5.19-rc1: 1673524.04   65008.87
+      patch1-9: 1911022.12   74234.54
+
+  Configurations:
+    (changes since patch 6)
+
+    cat mixed.sh
+    modprobe brd rd_nr=2 rd_size=56623104
+
+    swapoff -a
+    mkswap /dev/ram0
+    swapon /dev/ram0
+
+    mkfs.ext4 /dev/ram1
+    mount -t ext4 /dev/ram1 /mnt
+
+    memtier_benchmark -S /var/run/memcached/memcached.sock \
+      -P memcache_binary -n allkeys --key-minimum=1 \
+      --key-maximum=50000000 --key-pattern=P:P -c 1 -t 36 \
+      --ratio 1:0 --pipeline 8 -d 2000
+
+    fio -name=mglru --numjobs=36 --directory=/mnt --size=1408m \
+      --buffered=1 --ioengine=io_uring --iodepth=128 \
+      --iodepth_batch_submit=32 --iodepth_batch_complete=32 \
+      --rw=randread --random_distribution=random --norandommap \
+      --time_based --ramp_time=10m --runtime=90m --group_reporting &
+    pid=$!
+
+    sleep 200
+
+    memtier_benchmark -S /var/run/memcached/memcached.sock \
+      -P memcache_binary -n allkeys --key-minimum=1 \
+      --key-maximum=50000000 --key-pattern=R:R -c 1 -t 36 \
+      --ratio 0:1 --pipeline 8 --randomize --distinct-client-seed
+
+    kill -INT $pid
+    wait
+
+Client benchmark results:
+  no change (CONFIG_MEMCG=n)
+
+Signed-off-by: Yu Zhao <yuzhao@google.com>
+Acked-by: Brian Geffon <bgeffon@google.com>
+Acked-by: Jan Alexander Steffens (heftig) <heftig@archlinux.org>
+Acked-by: Oleksandr Natalenko <oleksandr@natalenko.name>
+Acked-by: Steven Barrett <steven@liquorix.net>
+Acked-by: Suleiman Souhlal <suleiman@google.com>
+Tested-by: Daniel Byrne <djbyrne@mtu.edu>
+Tested-by: Donald Carr <d@chaos-reins.com>
+Tested-by: Holger Hoffstätte <holger@applied-asynchrony.com>
+Tested-by: Konstantin Kharlamov <Hi-Angel@yandex.ru>
+Tested-by: Shuang Zhai <szhai2@cs.rochester.edu>
+Tested-by: Sofia Trinh <sofia.trinh@edi.works>
+Tested-by: Vaibhav Jain <vaibhav@linux.ibm.com>
+---
+ mm/vmscan.c | 55 ++++++++++++++++++++++++++++++++++++++++++++---------
+ 1 file changed, 46 insertions(+), 9 deletions(-)
+
+diff --git a/mm/vmscan.c b/mm/vmscan.c
+index 111111111..111111111 100644
+--- a/mm/vmscan.c
++++ b/mm/vmscan.c
+@@ -129,6 +129,13 @@ struct scan_control {
+ 	/* Always discard instead of demoting to lower tier memory */
+ 	unsigned int no_demotion:1;
+ 
++#ifdef CONFIG_LRU_GEN
++	/* help make better choices when multiple memcgs are available */
++	unsigned int memcgs_need_aging:1;
++	unsigned int memcgs_need_swapping:1;
++	unsigned int memcgs_avoid_swapping:1;
++#endif
++
+ 	/* Allocation order */
+ 	s8 order;
+ 
+@@ -4372,6 +4379,22 @@ static void lru_gen_age_node(struct pglist_data *pgdat, struct scan_control *sc)
+ 
+ 	VM_WARN_ON_ONCE(!current_is_kswapd());
+ 
++	/*
++	 * To reduce the chance of going into the aging path or swapping, which
++	 * can be costly, optimistically skip them unless their corresponding
++	 * flags were cleared in the eviction path. This improves the overall
++	 * performance when multiple memcgs are available.
++	 */
++	if (!sc->memcgs_need_aging) {
++		sc->memcgs_need_aging = true;
++		sc->memcgs_avoid_swapping = !sc->memcgs_need_swapping;
++		sc->memcgs_need_swapping = true;
++		return;
++	}
++
++	sc->memcgs_need_swapping = true;
++	sc->memcgs_avoid_swapping = true;
++
+ 	set_mm_walk(pgdat);
+ 
+ 	memcg = mem_cgroup_iter(NULL, NULL, NULL);
+@@ -4781,7 +4804,8 @@ static int isolate_folios(struct lruvec *lruvec, struct scan_control *sc, int sw
+ 	return scanned;
+ }
+ 
+-static int evict_folios(struct lruvec *lruvec, struct scan_control *sc, int swappiness)
++static int evict_folios(struct lruvec *lruvec, struct scan_control *sc, int swappiness,
++			bool *need_swapping)
+ {
+ 	int type;
+ 	int scanned;
+@@ -4844,14 +4868,16 @@ static int evict_folios(struct lruvec *lruvec, struct scan_control *sc, int swap
+ 
+ 	sc->nr_reclaimed += reclaimed;
+ 
++	if (type == LRU_GEN_ANON && need_swapping)
++		*need_swapping = true;
++
+ 	return scanned;
+ }
+ 
+ static unsigned long get_nr_to_scan(struct lruvec *lruvec, struct scan_control *sc,
+-				    bool can_swap, unsigned long reclaimed)
++				    bool can_swap, unsigned long reclaimed, bool *need_aging)
+ {
+ 	int priority;
+-	bool need_aging;
+ 	unsigned long nr_to_scan;
+ 	struct mem_cgroup *memcg = lruvec_memcg(lruvec);
+ 	DEFINE_MAX_SEQ(lruvec);
+@@ -4861,7 +4887,7 @@ static unsigned long get_nr_to_scan(struct lruvec *lruvec, struct scan_control *
+ 	    (mem_cgroup_below_low(memcg) && !sc->memcg_low_reclaim))
+ 		return 0;
+ 
+-	nr_to_scan = get_nr_evictable(lruvec, max_seq, min_seq, can_swap, &need_aging);
++	nr_to_scan = get_nr_evictable(lruvec, max_seq, min_seq, can_swap, need_aging);
+ 	if (!nr_to_scan)
+ 		return 0;
+ 
+@@ -4877,7 +4903,7 @@ static unsigned long get_nr_to_scan(struct lruvec *lruvec, struct scan_control *
+ 	if (!nr_to_scan)
+ 		return 0;
+ 
+-	if (!need_aging)
++	if (!*need_aging)
+ 		return nr_to_scan;
+ 
+ 	/* skip the aging path at the default priority */
+@@ -4897,6 +4923,8 @@ static unsigned long get_nr_to_scan(struct lruvec *lruvec, struct scan_control *
+ static void lru_gen_shrink_lruvec(struct lruvec *lruvec, struct scan_control *sc)
+ {
+ 	struct blk_plug plug;
++	bool need_aging = false;
++	bool need_swapping = false;
+ 	unsigned long scanned = 0;
+ 	unsigned long reclaimed = sc->nr_reclaimed;
+ 
+@@ -4918,21 +4946,30 @@ static void lru_gen_shrink_lruvec(struct lruvec *lruvec, struct scan_control *sc
+ 		else
+ 			swappiness = 0;
+ 
+-		nr_to_scan = get_nr_to_scan(lruvec, sc, swappiness, reclaimed);
++		nr_to_scan = get_nr_to_scan(lruvec, sc, swappiness, reclaimed, &need_aging);
+ 		if (!nr_to_scan)
+-			break;
++			goto done;
+ 
+-		delta = evict_folios(lruvec, sc, swappiness);
++		delta = evict_folios(lruvec, sc, swappiness, &need_swapping);
+ 		if (!delta)
+-			break;
++			goto done;
+ 
+ 		scanned += delta;
+ 		if (scanned >= nr_to_scan)
+ 			break;
+ 
++		if (sc->memcgs_avoid_swapping && swappiness < 200 && need_swapping)
++			break;
++
+ 		cond_resched();
+ 	}
+ 
++	/* see the comment in lru_gen_age_node() */
++	if (!need_aging)
++		sc->memcgs_need_aging = false;
++	if (!need_swapping)
++		sc->memcgs_need_swapping = false;
++done:
+ 	clear_mm_walk();
+ 
+ 	blk_finish_plug(&plug);
+

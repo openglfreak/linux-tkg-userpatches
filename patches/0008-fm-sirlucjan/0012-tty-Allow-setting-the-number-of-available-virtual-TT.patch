@@ -10,7 +10,7 @@ Signed-off-by: Piotr Gorski <lucjan.lucjanov@gmail.com>
  2 files changed, 27 insertions(+), 1 deletion(-)
 
 diff --git a/drivers/tty/Kconfig b/drivers/tty/Kconfig
-index 23cc988c6..d49b71eab 100644
+index 1111111..1111111 100644
 --- a/drivers/tty/Kconfig
 +++ b/drivers/tty/Kconfig
 @@ -75,6 +75,19 @@ config VT_CONSOLE_SLEEP
@@ -34,7 +34,7 @@ index 23cc988c6..d49b71eab 100644
  	bool
  	depends on VT
 diff --git a/include/uapi/linux/vt.h b/include/uapi/linux/vt.h
-index e9d39c485..3bceead8d 100644
+index 1111111..1111111 100644
 --- a/include/uapi/linux/vt.h
 +++ b/include/uapi/linux/vt.h
 @@ -3,12 +3,25 @@
@@ -65,5 +65,5 @@ index e9d39c485..3bceead8d 100644
  		   consoles 16 and higher (since it returns a short) */
  
 -- 
-2.33.0.328.g8b7c11b866
+2.37.1
 

@@ -195,10 +195,10 @@ Signed-off-by: Ankur Arora <ankur.a.arora@oracle.com>
  2 files changed, 20 insertions(+)
 
 diff --git a/arch/x86/include/asm/page_64.h b/arch/x86/include/asm/page_64.h
-index cfb95069cf9e..3c53f8ef8818 100644
+index 1111111..1111111 100644
 --- a/arch/x86/include/asm/page_64.h
 +++ b/arch/x86/include/asm/page_64.h
-@@ -44,6 +44,7 @@ void clear_page_orig(void *page);
+@@ -45,6 +45,7 @@ void clear_page_orig(void *page);
  void clear_page_rep(void *page);
  void clear_page_erms(void *page);
  void clear_page_movnt(void *page);
@@ -207,7 +207,7 @@ index cfb95069cf9e..3c53f8ef8818 100644
  static inline void clear_page(void *page)
  {
 diff --git a/arch/x86/lib/clear_page_64.S b/arch/x86/lib/clear_page_64.S
-index 578f40db0716..1cb29a4454e1 100644
+index 1111111..1111111 100644
 --- a/arch/x86/lib/clear_page_64.S
 +++ b/arch/x86/lib/clear_page_64.S
 @@ -76,3 +76,22 @@ SYM_FUNC_START(clear_page_movnt)

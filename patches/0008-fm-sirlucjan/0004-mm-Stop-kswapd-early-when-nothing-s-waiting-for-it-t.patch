@@ -18,22 +18,22 @@ Signed-off-by: Sultan Alsawaf <sultan@kerneltoast.com>
  3 files changed, 17 insertions(+), 4 deletions(-)
 
 diff --git a/include/linux/mmzone.h b/include/linux/mmzone.h
-index fcb535560..914f1c89c 100644
+index 1111111..1111111 100644
 --- a/include/linux/mmzone.h
 +++ b/include/linux/mmzone.h
-@@ -832,6 +832,7 @@ typedef struct pglist_data {
+@@ -860,6 +860,7 @@ typedef struct pglist_data {
  	unsigned long node_spanned_pages; /* total size of physical page
  					     range, including holes */
  	int node_id;
 +	atomic_t kswapd_waiters;
  	wait_queue_head_t kswapd_wait;
  	wait_queue_head_t pfmemalloc_wait;
- 	struct task_struct *kswapd;	/* Protected by
+ 
 diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index 7a28f7db7..7caa0e3ea 100644
+index 1111111..1111111 100644
 --- a/mm/page_alloc.c
 +++ b/mm/page_alloc.c
-@@ -4898,6 +4898,8 @@ __alloc_pages_slowpath(gfp_t gfp_mask, unsigned int order,
+@@ -4917,6 +4917,8 @@ __alloc_pages_slowpath(gfp_t gfp_mask, unsigned int order,
  	int no_progress_loops;
  	unsigned int cpuset_mems_cookie;
  	int reserve_flags;
@@ -42,9 +42,9 @@ index 7a28f7db7..7caa0e3ea 100644
  
  	/*
  	 * We also sanity check to catch abuse of atomic reserves being used by
-@@ -4931,8 +4933,13 @@ __alloc_pages_slowpath(gfp_t gfp_mask, unsigned int order,
- 	if (!ac->preferred_zoneref->zone)
- 		goto nopage;
+@@ -4963,8 +4965,13 @@ __alloc_pages_slowpath(gfp_t gfp_mask, unsigned int order,
+ 			goto nopage;
+ 	}
  
 -	if (alloc_flags & ALLOC_KSWAPD)
 +	if (alloc_flags & ALLOC_KSWAPD) {
@@ -57,7 +57,7 @@ index 7a28f7db7..7caa0e3ea 100644
  
  	/*
  	 * The adjusted alloc_flags might result in immediate success, so try
-@@ -5137,9 +5144,12 @@ __alloc_pages_slowpath(gfp_t gfp_mask, unsigned int order,
+@@ -5169,9 +5176,12 @@ __alloc_pages_slowpath(gfp_t gfp_mask, unsigned int order,
  		goto retry;
  	}
  fail:
@@ -72,7 +72,7 @@ index 7a28f7db7..7caa0e3ea 100644
  	return page;
  }
  
-@@ -7399,6 +7409,7 @@ static void __meminit pgdat_init_internals(struct pglist_data *pgdat)
+@@ -7532,6 +7542,7 @@ static void __meminit pgdat_init_internals(struct pglist_data *pgdat)
  
  	pgdat_page_ext_init(pgdat);
  	lruvec_init(&pgdat->__lruvec);
@@ -81,10 +81,10 @@ index 7a28f7db7..7caa0e3ea 100644
  
  static void __meminit zone_init_internals(struct zone *zone, enum zone_type idx, int nid,
 diff --git a/mm/vmscan.c b/mm/vmscan.c
-index f1782b816..b902b66d2 100644
+index 1111111..1111111 100644
 --- a/mm/vmscan.c
 +++ b/mm/vmscan.c
-@@ -3941,7 +3941,8 @@ static int balance_pgdat(pg_data_t *pgdat, int order, int highest_zoneidx)
+@@ -4228,7 +4228,8 @@ static int balance_pgdat(pg_data_t *pgdat, int order, int highest_zoneidx)
  		__fs_reclaim_release(_THIS_IP_);
  		ret = try_to_freeze();
  		__fs_reclaim_acquire(_THIS_IP_);
@@ -95,5 +95,5 @@ index f1782b816..b902b66d2 100644
  
  		/*
 -- 
-2.33.0.328.g8b7c11b866
+2.37.1
 

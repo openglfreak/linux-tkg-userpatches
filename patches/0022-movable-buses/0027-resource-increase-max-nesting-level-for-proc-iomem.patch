@@ -1,0 +1,66 @@
+From 0fb3304ab465f05fa0de06efa910deaac7ea3489 Mon Sep 17 00:00:00 2001
+From: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+Date: Fri, 18 Dec 2020 16:47:41 +0300
+Subject: [PATCH 27/57] resource: increase max nesting level for /proc/iomem
+
+Current value of maximum indentation for /proc/iomem and /proc/ioports is
+not enough for comfortable PCI resources debugging when several bridges are
+nested, so increase it from 5 to 15:
+
+ % lspci -tv
+ +-[0000:80]-+-00.0-[81]--
+ |           +-01.0-[82]--
+ |           +-03.0-[83-99]----00.0-[84-99]----04.0-[85-99]----00.0-[86-99]--+-00.0-[87]--
+ |           |                                                               +-04.0-[88]--
+ |           |                                                               +-08.0-[89]--
+ |           |                                                               +-09.0-[8a]--
+ |           |                                                               +-0c.0-[8b-95]----00.0-[8c-95]--+-00.0-[8d]--
+ |           |                                                               |                               +-04.0-[8e]--
+ |           |                                                               |                               +-08.0-[8f]--
+ |           |                                                               |                               +-09.0-[90]--
+ |           |                                                               |                               +-0c.0-[91]--
+ |           |                                                               |                               +-10.0-[92]--+-00.0
+ |           |                                                               |                               |            \-00.1
+
+ % sudo cat /proc/iomem
+ ...
+ f9000000000-f907fffffff : PCI Bus 0000:80
+   f9000100000-f90010fffff : PCI Bus 0000:83
+     f9000100000-f90010fffff : PCI Bus 0000:84
+       f9000100000-f90010fffff : PCI Bus 0000:85
+         f9000100000-f90010fffff : PCI Bus 0000:86
+           f9000100000-f90009fffff : PCI Bus 0000:8b
+             f9000100000-f90009fffff : PCI Bus 0000:8c
+               f9000100000-f90003fffff : PCI Bus 0000:92
+                 f9000100000-f90001fffff : 0000:92:00.0
+                   f9000100000-f90001fffff : qla2xx
+                 f9000200000-f9002ffffff : 0000:92:00.1
+                   f9000200000-f90002fffff : qla2xxx
+                 f9000300000-f9000301fff : 0000:92:00.0
+                   f9000300000-f9000301fff : qla2xxx
+                 f9000302000-f9000303fff : 0000:92:00.1
+                   f9000302000-f9000303fff : qla2xxx
+                 f9000304000-f9000304fff : 0000:92:00.0
+                   f9000304000-f9000304fff : qla2xxx
+                 f9000305000-f9000305fff : 0000:92:00.1
+                   f9000305000-f9000305fff : qla2xxx
+
+Signed-off-by: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+---
+ kernel/resource.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/kernel/resource.c b/kernel/resource.c
+index 111111111..111111111 100644
+--- a/kernel/resource.c
++++ b/kernel/resource.c
+@@ -86,7 +86,7 @@ static void *r_next(struct seq_file *m, void *v, loff_t *pos)
+ 
+ #ifdef CONFIG_PROC_FS
+ 
+-enum { MAX_IORES_LEVEL = 5 };
++enum { MAX_IORES_LEVEL = 15 };
+ 
+ static void *r_start(struct seq_file *m, loff_t *pos)
+ 	__acquires(resource_lock)
+

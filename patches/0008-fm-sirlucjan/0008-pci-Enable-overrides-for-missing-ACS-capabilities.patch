@@ -53,10 +53,10 @@ Signed-off-by: Alexandre Frade <admfrade@gmail.com>
  2 files changed, 111 insertions(+)
 
 diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
-index bdb22006f..3375d7ca8 100644
+index 1111111..1111111 100644
 --- a/Documentation/admin-guide/kernel-parameters.txt
 +++ b/Documentation/admin-guide/kernel-parameters.txt
-@@ -3861,6 +3861,15 @@
+@@ -4087,6 +4087,15 @@
  		nomsi		[MSI] If the PCI_MSI kernel config parameter is
  				enabled, this kernel boot option can be used to
  				disable the use of MSI interrupts system-wide.
@@ -73,10 +73,10 @@ index bdb22006f..3375d7ca8 100644
  				Safety option to keep boot IRQs enabled. This
  				should never be necessary.
 diff --git a/drivers/pci/quirks.c b/drivers/pci/quirks.c
-index 8c3c1ef92..49c9c58bd 100644
+index 1111111..1111111 100644
 --- a/drivers/pci/quirks.c
 +++ b/drivers/pci/quirks.c
-@@ -3561,6 +3561,106 @@ static void quirk_nvidia_no_bus_reset(struct pci_dev *dev)
+@@ -3613,6 +3613,106 @@ static void quirk_nvidia_no_bus_reset(struct pci_dev *dev)
  DECLARE_PCI_FIXUP_HEADER(PCI_VENDOR_ID_NVIDIA, PCI_ANY_ID,
  			 quirk_nvidia_no_bus_reset);
  
@@ -183,7 +183,7 @@ index 8c3c1ef92..49c9c58bd 100644
  /*
   * Some Atheros AR9xxx and QCA988x chips do not behave after a bus reset.
   * The device will throw a Link Down error on AER-capable systems and
-@@ -4913,6 +5013,8 @@ static const struct pci_dev_acs_enabled {
+@@ -4966,6 +5066,8 @@ static const struct pci_dev_acs_enabled {
  	{ PCI_VENDOR_ID_NXP, 0x8d9b, pci_quirk_nxp_rp_acs },
  	/* Zhaoxin Root/Downstream Ports */
  	{ PCI_VENDOR_ID_ZHAOXIN, PCI_ANY_ID, pci_quirk_zhaoxin_pcie_ports_acs },
@@ -193,5 +193,5 @@ index 8c3c1ef92..49c9c58bd 100644
  };
  
 -- 
-2.33.0.328.g8b7c11b866
+2.37.1
 

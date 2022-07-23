@@ -1,0 +1,53 @@
+From e0ed698325d8b3783891fbe1c36623d0e89c0f86 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Thu, 16 Jun 2022 23:10:56 +0200
+Subject: [PATCH 5/6] amdgpu: Do not update cursor attributes if new values
+ match saved values.
+
+---
+ .../gpu/drm/amd/display/dc/core/dc_stream.c    | 18 +++++++++++++++++-
+ 1 file changed, 17 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/gpu/drm/amd/display/dc/core/dc_stream.c b/drivers/gpu/drm/amd/display/dc/core/dc_stream.c
+index 111111111..111111111 100644
+--- a/drivers/gpu/drm/amd/display/dc/core/dc_stream.c
++++ b/drivers/gpu/drm/amd/display/dc/core/dc_stream.c
+@@ -306,6 +306,20 @@ bool dc_optimize_timing_for_fsft(
+ }
+ #endif
+ 
++static bool equal_attributes(
++	const struct dc_cursor_attributes *a,
++	const struct dc_cursor_attributes *b)
++{
++	return (a->address.quad_part == b->address.quad_part &&
++		a->pitch == b->pitch &&
++		a->width == b->width &&
++		a->height == b->height &&
++		a->color_format == b->color_format &&
++		a->sdr_white_level == b->sdr_white_level &&
++		a->rotation_angle == b->rotation_angle &&
++		a->attribute_flags.value == b->attribute_flags.value);
++}
++
+ /*
+  * dc_stream_set_cursor_attributes() - Update cursor attributes and set cursor surface address
+  */
+@@ -330,6 +344,9 @@ bool dc_stream_set_cursor_attributes(
+ 		return false;
+ 	}
+ 
++	if (equal_attributes(&stream->cursor_attributes, attributes))
++		return true;
++
+ 	dc = stream->ctx->dc;
+ 	stream->cursor_attributes = *attributes;
+ 
+@@ -761,4 +778,3 @@ void dc_stream_log(const struct dc *dc, const struct dc_stream_state *stream)
+ 		}
+ 	}
+ }
+-
+-- 
+2.37.1
+

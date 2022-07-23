@@ -1,0 +1,72 @@
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH 4/5] scheduler: Add boot time enabling/disabling of cluster scheduling
+From: Tim Chen <tim.c.chen@linux.intel.com>
+Date: Fri, 03 Dec 2021 12:32:41 -0800
+Message-Id: <41bf195de9d387ea58c030aec4eaaa8686c9cbb1.1638563225.git.tim.c.chen@linux.intel.com>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Tim Chen <tim.c.chen@linux.intel.com>, Arjan Van De Ven <arjan.van.de.ven@intel.com>, Ricardo Neri <ricardo.neri@intel.com>, Len Brown <len.brown@intel.com>, Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com>, Artem Bityutskiy <artem.bityutskiy@linux.intel.com>, Chen Yu <yu.c.chen@intel.com>, Song Bao Hua <song.bao.hua@hisilicon.com>, yangyicong <yangyicong@huawei.com>, Michael Larabel <Michael@MichaelLarabel.com>, linux-kernel@vger.kernel.org
+In-Reply-To: <cover.1638563225.git.tim.c.chen@linux.intel.com>
+References: <cover.1638563225.git.tim.c.chen@linux.intel.com>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Add boot time parameter sched_cluster to enable or disable cluster
+scheduling.  Set boot parameter as follow:
+
+	sched_cluster=0 disables cluster scheduling
+	sched_cluster=1 enables cluster scheduling
+
+Signed-off-by: Tim Chen <tim.c.chen@linux.intel.com>
+---
+ Documentation/admin-guide/kernel-parameters.txt |  4 ++++
+ kernel/sched/topology.c                         | 16 ++++++++++++++++
+ 2 files changed, 20 insertions(+)
+
+diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
+index 111111111..111111111 100644
+--- a/Documentation/admin-guide/kernel-parameters.txt
++++ b/Documentation/admin-guide/kernel-parameters.txt
+@@ -5317,6 +5317,10 @@
+ 
+ 	sched_verbose	[KNL] Enables verbose scheduler debug messages.
+ 
++	sched_cluster=  Enable or disable cluster scheduling.
++			0 -- disable.
++			1 -- enable.
++
+ 	schedstats=	[KNL,X86] Enable or disable scheduled statistics.
+ 			Allowed values are enable and disable. This feature
+ 			incurs a small amount of overhead in the scheduler
+diff --git a/kernel/sched/topology.c b/kernel/sched/topology.c
+index 111111111..111111111 100644
+--- a/kernel/sched/topology.c
++++ b/kernel/sched/topology.c
+@@ -1747,6 +1747,22 @@ static int __init sched_cluster_sysctl_init(void)
+ }
+ 
+ late_initcall(sched_cluster_sysctl_init);
++
++static int __init sched_cluster_option(char *str)
++{
++	int enable;
++
++	if (get_option(&str, &enable)) {
++		if (enable != 0 && enable != 1)
++			return -EINVAL;
++
++		sysctl_sched_cluster = enable;
++		return 0;
++	}
++
++	return -EINVAL;
++}
++early_param("sched_cluster", sched_cluster_option);
+ #endif
+ 
+ static struct sched_domain_topology_level *next_tl(struct sched_domain_topology_level *tl)
+
+-- 
+2.37.1
+

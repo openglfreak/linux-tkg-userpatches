@@ -12,7 +12,7 @@ Signed-off-by: Alexandre Frade <kernel@xanmod.org>
  3 files changed, 99 insertions(+), 2 deletions(-)
 
 diff --git a/include/linux/freezer.h b/include/linux/freezer.h
-index 0621c5f86c397..97f58f6c2b635 100644
+index 1111111..1111111 100644
 --- a/include/linux/freezer.h
 +++ b/include/linux/freezer.h
 @@ -310,6 +310,7 @@ static inline void set_freezable(void) {}
@@ -24,10 +24,10 @@ index 0621c5f86c397..97f58f6c2b635 100644
  
  #endif	/* FREEZER_H_INCLUDED */
 diff --git a/include/linux/sched.h b/include/linux/sched.h
-index ec8d07d88641c..2680db953493d 100644
+index 1111111..1111111 100644
 --- a/include/linux/sched.h
 +++ b/include/linux/sched.h
-@@ -220,13 +220,40 @@ struct task_group;
+@@ -282,13 +282,40 @@ enum {
  
  extern void scheduler_tick(void);
  
@@ -71,10 +71,10 @@ index ec8d07d88641c..2680db953493d 100644
  extern void schedule_preempt_disabled(void);
  asmlinkage void preempt_schedule_irq(void);
 diff --git a/kernel/time/hrtimer.c b/kernel/time/hrtimer.c
-index 4a66725b1d4ac..46757e9c60e11 100644
+index 1111111..1111111 100644
 --- a/kernel/time/hrtimer.c
 +++ b/kernel/time/hrtimer.c
-@@ -2236,3 +2236,72 @@ int __sched schedule_hrtimeout(ktime_t *expires,
+@@ -2384,3 +2384,72 @@ int __sched schedule_hrtimeout(ktime_t *expires,
  	return schedule_hrtimeout_range(expires, 0, mode);
  }
  EXPORT_SYMBOL_GPL(schedule_hrtimeout);

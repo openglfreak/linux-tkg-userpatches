@@ -1,0 +1,69 @@
+From c0dc0f2045b259262e66873e1042bc6da3e1c525 Mon Sep 17 00:00:00 2001
+From: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+Date: Mon, 23 Nov 2020 14:13:00 +0300
+Subject: [PATCH 25/57] PCI: unsupported IO BARs are not a failure
+
+If a platform (powernv for example) doesn't support I/O requests, the dmesg
+log has lots of the following a bit misleading messages:
+
+  BAR 2: no space for [io  size ...
+  BAR 2: failed to assign [io  size ..
+
+Replace them with a more informative message:
+
+  BAR 2: IO are not supported
+
+This also helps to avoid excess rescans, which are triggered if some BAR
+assignments had failed.
+
+Signed-off-by: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+---
+ drivers/pci/pci.h   | 1 +
+ drivers/pci/probe.c | 7 +++++++
+ 2 files changed, 8 insertions(+)
+
+diff --git a/drivers/pci/pci.h b/drivers/pci/pci.h
+index 111111111..111111111 100644
+--- a/drivers/pci/pci.h
++++ b/drivers/pci/pci.h
+@@ -266,6 +266,7 @@ static inline bool pci_fixed_range_valid(struct resource *res)
+ }
+ 
+ extern bool pci_init_done;
++extern bool io_res_supported;
+ 
+ /* PCIe link information from Link Capabilities 2 */
+ #define PCIE_LNKCAP2_SLS2SPEED(lnkcap2) \
+diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+index 111111111..111111111 100644
+--- a/drivers/pci/probe.c
++++ b/drivers/pci/probe.c
+@@ -44,6 +44,7 @@ EXPORT_SYMBOL(pci_root_buses);
+ static bool pci_try_failed_bars = true;
+ bool pci_hotplug_expand = true;
+ bool pci_init_done;
++bool io_res_supported;
+ 
+ static LIST_HEAD(pci_domain_busn_res_list);
+ 
+@@ -1069,6 +1070,9 @@ static int pci_register_host_bridge(struct pci_host_bridge *bridge)
+ 			addr[0] = '\0';
+ 
+ 		dev_info(&bus->dev, "root bus resource %pR%s\n", res, addr);
++
++		if (resource_type(res) == IORESOURCE_IO)
++			io_res_supported = true;
+ 	}
+ 
+ 	down_write(&pci_bus_sem);
+@@ -3569,6 +3573,9 @@ bool pci_bus_check_bars_assigned(struct pci_bus *bus, bool complete_set)
+ 				if (!(r->flags & IORESOURCE_UNSET))
+ 					continue;
+ 
++				if (r->flags & IORESOURCE_IO && !io_res_supported)
++					continue;
++
+ 				pci_warn(dev, "BAR %d: requested but not assigned: %pR\n",
+ 					 i, r);
+ 				good = false;
+

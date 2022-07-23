@@ -1,0 +1,29 @@
+From e221a17afbacc8afa44a2e2eafed5f2eee7a8b52 Mon Sep 17 00:00:00 2001
+From: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+Date: Wed, 13 May 2020 13:10:40 +0300
+Subject: [PATCH 53/57] powerpc/pci: Don't reduce the host bridge bus range
+
+Currently the last possible bus number of the PHB is set to the last
+used bus number during the boot. So when hotplugging a bridge later,
+no new buses can be allocated because they are limited by this value.
+
+Let the host bridge contain any number of buses up to 255.
+
+Signed-off-by: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+---
+ arch/powerpc/kernel/pci-common.c | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/arch/powerpc/kernel/pci-common.c b/arch/powerpc/kernel/pci-common.c
+index 111111111..111111111 100644
+--- a/arch/powerpc/kernel/pci-common.c
++++ b/arch/powerpc/kernel/pci-common.c
+@@ -1667,7 +1667,6 @@ void pcibios_scan_phb(struct pci_controller *hose)
+ 	if (mode == PCI_PROBE_NORMAL) {
+ 		pci_bus_update_busn_res_end(bus, 255);
+ 		hose->last_busno = pci_scan_child_bus(bus);
+-		pci_bus_update_busn_res_end(bus, hose->last_busno);
+ 	}
+ 
+ 	/* Platform gets a chance to do some global fixups before
+

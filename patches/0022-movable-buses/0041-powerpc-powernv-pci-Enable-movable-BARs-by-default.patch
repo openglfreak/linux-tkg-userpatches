@@ -1,0 +1,26 @@
+From 3c2778103378f91f77c9f0fe8a8a06f906400b98 Mon Sep 17 00:00:00 2001
+From: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+Date: Wed, 13 May 2020 13:09:31 +0300
+Subject: [PATCH 41/57] powerpc/powernv/pci: Enable movable BARs by default
+
+PowerNV is now able to handle movable BARs, so enable it by default
+
+Signed-off-by: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+---
+ arch/powerpc/platforms/powernv/pci.c | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/arch/powerpc/platforms/powernv/pci.c b/arch/powerpc/platforms/powernv/pci.c
+index 111111111..111111111 100644
+--- a/arch/powerpc/platforms/powernv/pci.c
++++ b/arch/powerpc/platforms/powernv/pci.c
+@@ -850,8 +850,6 @@ void __init pnv_pci_init(void)
+ {
+ 	struct device_node *np;
+ 
+-	pci_can_move_bars = false;
+-
+ 	pci_add_flags(PCI_CAN_SKIP_ISA_ALIGN);
+ 
+ 	/* If we don't have OPAL, eg. in sim, just skip PCI probe */
+

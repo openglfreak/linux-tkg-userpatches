@@ -10,10 +10,10 @@ Signed-off-by: Alexandre Frade <kernel@xanmod.org>
  1 file changed, 14 insertions(+), 2 deletions(-)
 
 diff --git a/kernel/time/timer.c b/kernel/time/timer.c
-index e3d2c23c413d4..ffafd93b2a101 100644
+index 1111111..1111111 100644
 --- a/kernel/time/timer.c
 +++ b/kernel/time/timer.c
-@@ -1875,6 +1875,18 @@ signed long __sched schedule_timeout(signed long timeout)
+@@ -1929,6 +1929,18 @@ signed long __sched schedule_timeout(signed long timeout)
  
  	expire = timeout + jiffies;
  
@@ -32,7 +32,7 @@ index e3d2c23c413d4..ffafd93b2a101 100644
  	timer.task = current;
  	timer_setup_on_stack(&timer.timer, process_timeout, 0);
  	__mod_timer(&timer.timer, expire, MOD_TIMER_NOTPENDING);
-@@ -1883,10 +1895,10 @@ signed long __sched schedule_timeout(signed long timeout)
+@@ -1937,10 +1949,10 @@ signed long __sched schedule_timeout(signed long timeout)
  
  	/* Remove the timer from the object tracker */
  	destroy_timer_on_stack(&timer.timer);

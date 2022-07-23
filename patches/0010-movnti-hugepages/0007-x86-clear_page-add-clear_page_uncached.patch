@@ -194,17 +194,16 @@ Notes:
     Anyway, wanted to first check if that's the way to do it, before 
     doing that.
 
- arch/x86/include/asm/page.h    | 10 ++++++++++
- arch/x86/include/asm/page_32.h |  9 +++++++++
- arch/x86/include/asm/page_64.h | 32 ++++++++++++++++++++++++++++++++
- include/linux/mm.h             | 14 ++++++++++++++
- 4 files changed, 65 insertions(+)
+ arch/x86/include/asm/page_32.h | 13 ++++++++++++
+ arch/x86/include/asm/page_64.h | 36 ++++++++++++++++++++++++++++++++++
+ include/linux/mm.h             | 18 +++++++++++++++++
+ 3 files changed, 67 insertions(+)
 
 diff --git a/arch/x86/include/asm/page_32.h b/arch/x86/include/asm/page_32.h
-index 94dbd51df58f..163be03ac422 100644
+index 1111111..1111111 100644
 --- a/arch/x86/include/asm/page_32.h
 +++ b/arch/x86/include/asm/page_32.h
-@@ -39,6 +39,19 @@ static inline void clear_page(void *page)
+@@ -26,6 +26,19 @@ static inline void clear_page(void *page)
  	memset(page, 0, PAGE_SIZE);
  }
  
@@ -225,10 +224,10 @@ index 94dbd51df58f..163be03ac422 100644
  {
  	memcpy(to, from, PAGE_SIZE);
 diff --git a/arch/x86/include/asm/page_64.h b/arch/x86/include/asm/page_64.h
-index 3c53f8ef8818..d7946047c70f 100644
+index 1111111..1111111 100644
 --- a/arch/x86/include/asm/page_64.h
 +++ b/arch/x86/include/asm/page_64.h
-@@ -56,6 +56,42 @@ static inline void clear_page(void *page)
+@@ -57,6 +57,42 @@ static inline void clear_page(void *page)
  			   : "cc", "memory", "rax", "rcx");
  }
  
@@ -272,10 +271,10 @@ index 3c53f8ef8818..d7946047c70f 100644
  
  #ifdef CONFIG_X86_5LEVEL
 diff --git a/include/linux/mm.h b/include/linux/mm.h
-index 73a52aba448f..b88069d1116c 100644
+index 1111111..1111111 100644
 --- a/include/linux/mm.h
 +++ b/include/linux/mm.h
-@@ -3192,6 +3192,24 @@ static inline bool vma_is_special_huge(const struct vm_area_struct *vma)
+@@ -3330,6 +3330,24 @@ static inline bool vma_is_special_huge(const struct vm_area_struct *vma)
  
  #endif /* CONFIG_TRANSPARENT_HUGEPAGE || CONFIG_HUGETLBFS */
  

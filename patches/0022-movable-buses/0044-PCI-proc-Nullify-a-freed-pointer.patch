@@ -1,0 +1,29 @@
+From 7a892f71aea9174ec82db64295504f217edd4a9d Mon Sep 17 00:00:00 2001
+From: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+Date: Wed, 13 May 2020 13:09:48 +0300
+Subject: [PATCH 44/57] PCI: proc: Nullify a freed pointer
+
+A PCI device may be detached from /proc/bus/pci/devices not only when it is
+removed, but also when its bus had changed the number - in this case the
+proc entry must be recreated to reflect the new PCI topology.
+
+Nullify freed pointers to mark them as valid for allocating again.
+
+Signed-off-by: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+---
+ drivers/pci/proc.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/pci/proc.c b/drivers/pci/proc.c
+index 111111111..111111111 100644
+--- a/drivers/pci/proc.c
++++ b/drivers/pci/proc.c
+@@ -449,6 +449,7 @@ int pci_proc_detach_device(struct pci_dev *dev)
+ int pci_proc_detach_bus(struct pci_bus *bus)
+ {
+ 	proc_remove(bus->procdir);
++	bus->procdir = NULL;
+ 	return 0;
+ }
+ 
+

@@ -1,0 +1,39 @@
+From 1ab8e816192b3c4b13950ba3c4fbcacee915a485 Mon Sep 17 00:00:00 2001
+From: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+Date: Fri, 18 Dec 2020 16:47:17 +0300
+Subject: [PATCH 18/57] PCI: pciehp: Trigger a domain rescan on hp events when
+ enabled movable BARs
+
+With movable BARs, hot-adding a device is not a local event for its bridge,
+but it affects the whole RC: BARs and bridge windows can be substantially
+rearranged. So instead of trying to fit the new devices into pre-allocated
+reserved gaps, initiate a full domain rescan.
+
+The pci_rescan_bus() covers all the operations of the replaced functions:
+ - assigning new bus numbers, as the pci_hp_add_bridge() does it;
+ - allocating BARs -- pci_assign_unassigned_bridge_resources();
+ - configuring MPS settings -- pcie_bus_configure_settings();
+ - binding devices to their drivers -- pci_bus_add_devices().
+
+Signed-off-by: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+---
+ drivers/pci/hotplug/pciehp_pci.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/drivers/pci/hotplug/pciehp_pci.c b/drivers/pci/hotplug/pciehp_pci.c
+index 111111111..111111111 100644
+--- a/drivers/pci/hotplug/pciehp_pci.c
++++ b/drivers/pci/hotplug/pciehp_pci.c
+@@ -58,6 +58,11 @@ int pciehp_configure_device(struct controller *ctrl)
+ 		goto out;
+ 	}
+ 
++	if (pci_can_move_bars) {
++		pci_rescan_bus(parent);
++		goto out;
++	}
++
+ 	for_each_pci_bridge(dev, parent)
+ 		pci_hp_add_bridge(dev);
+ 
+

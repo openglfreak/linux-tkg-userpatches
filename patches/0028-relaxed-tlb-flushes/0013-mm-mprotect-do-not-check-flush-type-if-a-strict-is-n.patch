@@ -1,0 +1,76 @@
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH RFC 13/14] mm/mprotect: do not check flush type if a strict is needed
+From: Nadav Amit <nadav.amit@gmail.com>
+Date: Mon, 18 Jul 2022 05:02:11 -0700
+Message-Id: <20220718120212.3180-14-namit@vmware.com>
+To: linux-mm@kvack.org
+Cc: linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Axel Rasmussen <axelrasmussen@google.com>, Nadav Amit <namit@vmware.com>, Andrea Arcangeli <aarcange@redhat.com>, Andrew Cooper <andrew.cooper3@citrix.com>, Andy Lutomirski <luto@kernel.org>, Dave Hansen <dave.hansen@linux.intel.com>, David Hildenbrand <david@redhat.com>, Peter Xu <peterx@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, Yu Zhao <yuzhao@google.com>, Nick Piggin <npiggin@gmail.com>
+In-Reply-To: <20220718120212.3180-1-namit@vmware.com>
+References: <20220718120212.3180-1-namit@vmware.com>
+List-Id: <linux-kernel.vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+From: Nadav Amit <namit@vmware.com>
+
+Once it was determined that a strict TLB flush is needed, it is both
+likely that other PTEs would need strict TLB flush and little benefit
+from not extending the range that is flushed.
+
+Skip the check which TLB flush is needed, if it was determined a strict
+flush is already needed.
+
+Cc: Andrea Arcangeli <aarcange@redhat.com>
+Cc: Andrew Cooper <andrew.cooper3@citrix.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Dave Hansen <dave.hansen@linux.intel.com>
+Cc: David Hildenbrand <david@redhat.com>
+Cc: Peter Xu <peterx@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Will Deacon <will@kernel.org>
+Cc: Yu Zhao <yuzhao@google.com>
+Cc: Nick Piggin <npiggin@gmail.com>
+Signed-off-by: Nadav Amit <namit@vmware.com>
+---
+ mm/huge_memory.c | 4 +++-
+ mm/mprotect.c    | 4 +++-
+ 2 files changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/mm/huge_memory.c b/mm/huge_memory.c
+index 111111111..111111111 100644
+--- a/mm/huge_memory.c
++++ b/mm/huge_memory.c
+@@ -1821,7 +1821,9 @@ int change_huge_pmd(struct mmu_gather *tlb, struct vm_area_struct *vma,
+ 	ret = HPAGE_PMD_NR;
+ 	set_pmd_at(mm, addr, pmd, entry);
+ 
+-	flush_type = huge_pmd_flush_type(oldpmd, entry);
++	flush_type = PTE_FLUSH_STRICT;
++	if (!tlb->strict)
++		flush_type = huge_pmd_flush_type(oldpmd, entry);
+ 	if (flush_type != PTE_FLUSH_NONE)
+ 		tlb_flush_pmd_range(tlb, addr, HPAGE_PMD_SIZE,
+ 				    flush_type == PTE_FLUSH_STRICT);
+diff --git a/mm/mprotect.c b/mm/mprotect.c
+index 111111111..111111111 100644
+--- a/mm/mprotect.c
++++ b/mm/mprotect.c
+@@ -202,7 +202,9 @@ static unsigned long change_pte_range(struct mmu_gather *tlb,
+ 
+ 			ptep_modify_prot_commit(vma, addr, pte, oldpte, ptent);
+ 
+-			flush_type = pte_flush_type(oldpte, ptent);
++			flush_type = PTE_FLUSH_STRICT;
++			if (!tlb->strict)
++				flush_type = pte_flush_type(oldpte, ptent);
+ 			if (flush_type != PTE_FLUSH_NONE)
+ 				tlb_flush_pte_range(tlb, addr, PAGE_SIZE,
+ 						flush_type == PTE_FLUSH_STRICT);
+
+-- 
+
+2.37.1
+

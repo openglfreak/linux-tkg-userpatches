@@ -1,0 +1,30 @@
+From db706297b710a3f1992298647d1f6e90463fa685 Mon Sep 17 00:00:00 2001
+From: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+Date: Wed, 13 May 2020 13:08:53 +0300
+Subject: [PATCH 31/57] powerpc/pci: Fix crash with enabled movable BARs
+
+Add a check for the UNSET resource flag to skip the released BARs
+
+CC: Alexey Kardashevskiy <aik@ozlabs.ru>
+CC: Oliver O'Halloran <oohall@gmail.com>
+CC: Sam Bobroff <sbobroff@linux.ibm.com>
+Signed-off-by: Sergei Miroshnichenko <s.miroshnichenko@yadro.com>
+---
+ arch/powerpc/platforms/powernv/pci-ioda.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/arch/powerpc/platforms/powernv/pci-ioda.c b/arch/powerpc/platforms/powernv/pci-ioda.c
+index 111111111..111111111 100644
+--- a/arch/powerpc/platforms/powernv/pci-ioda.c
++++ b/arch/powerpc/platforms/powernv/pci-ioda.c
+@@ -2323,7 +2323,8 @@ static void pnv_ioda_setup_pe_res(struct pnv_ioda_pe *pe,
+ 	int index;
+ 	int64_t rc;
+ 
+-	if (!res || !res->flags || res->start > res->end)
++	if (!res || !res->flags || res->start > res->end ||
++	    (res->flags & IORESOURCE_UNSET))
+ 		return;
+ 
+ 	if (res->flags & IORESOURCE_IO) {
+

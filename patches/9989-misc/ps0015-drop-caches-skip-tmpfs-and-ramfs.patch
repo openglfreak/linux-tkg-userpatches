@@ -1,0 +1,154 @@
+From patchwork Fri Jun 24 18:21:21 2022
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+X-Patchwork-Submitter: CGEL <cgel.zte@gmail.com>
+X-Patchwork-Id: 12894996
+Return-Path: <owner-linux-mm@kvack.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from kanga.kvack.org (kanga.kvack.org [205.233.56.17])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 0F0B3C433EF
+	for <linux-mm@archiver.kernel.org>; Fri, 24 Jun 2022 18:21:30 +0000 (UTC)
+Received: by kanga.kvack.org (Postfix)
+	id 9BBF78E0260; Fri, 24 Jun 2022 14:21:29 -0400 (EDT)
+Received: by kanga.kvack.org (Postfix, from userid 40)
+	id 96C178E0244; Fri, 24 Jun 2022 14:21:29 -0400 (EDT)
+X-Delivered-To: int-list-linux-mm@kvack.org
+Received: by kanga.kvack.org (Postfix, from userid 63042)
+	id 85A8D8E0260; Fri, 24 Jun 2022 14:21:29 -0400 (EDT)
+X-Delivered-To: linux-mm@kvack.org
+Received: from relay.hostedemail.com (smtprelay0012.hostedemail.com
+ [216.40.44.12])
+	by kanga.kvack.org (Postfix) with ESMTP id 7B9888E0244
+	for <linux-mm@kvack.org>; Fri, 24 Jun 2022 14:21:29 -0400 (EDT)
+Received: from smtpin08.hostedemail.com (a10.router.float.18 [10.200.18.1])
+	by unirelay01.hostedemail.com (Postfix) with ESMTP id 4AB5A60B89
+	for <linux-mm@kvack.org>; Fri, 24 Jun 2022 18:21:29 +0000 (UTC)
+X-FDA: 79613947098.08.A54F1B4
+Received: from mail-pj1-f48.google.com (mail-pj1-f48.google.com
+ [209.85.216.48])
+	by imf13.hostedemail.com (Postfix) with ESMTP id 9AC9320017
+	for <linux-mm@kvack.org>; Fri, 24 Jun 2022 18:21:28 +0000 (UTC)
+Received: by mail-pj1-f48.google.com with SMTP id
+ h9-20020a17090a648900b001ecb8596e43so3552875pjj.5
+        for <linux-mm@kvack.org>; Fri, 24 Jun 2022 11:21:28 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20210112;
+        h=from:to:cc:subject:date:message-id:mime-version
+         :content-transfer-encoding;
+        bh=P5YJ65pvDdEwq3atTRzFu054q854VYDQ/r8rcFUwysg=;
+        b=VufbRJ4GpKPqMP701/bggIhVtf11LdAOfoZb9tap7+gmimqkQXAviT5LJdOx5Smn/H
+         hCjemWQA8ZtNBBROfP/qmmvoLGncmPisF87Xez3+XuxTZBszqzvmdrl7boDPhc2LdYj6
+         PnSQShnAosrQzC78g/XUdzDBduKPAYE6IQCQupqCXQik1+B8knWtIMjMWusjrSmxsZK/
+         fLKAo1JsfR2/je76z2yHkMtYQ4iRSdT/6AHM9/GLB/MAsxdaVhPYB2+9q7UcmsQtf1pY
+         flV/4h6KYU2/IqvlKuaAkSvS3VjIBHsm1PJe2h26JbJGJIH20C0fPjg3c35Q0NxZPerL
+         1Row==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112;
+        h=x-gm-message-state:from:to:cc:subject:date:message-id:mime-version
+         :content-transfer-encoding;
+        bh=P5YJ65pvDdEwq3atTRzFu054q854VYDQ/r8rcFUwysg=;
+        b=iXdgWFs6WU72LAIuwBq58vDfpSCOrddBqjcerrTNAqbTLuRKmj2ak37epcSJ04ngfP
+         aqfBBrB+pJDGsmpjg4JkyDulz7yHVKce5As3mFADbKlYFpUL87mjbA7iiOUJjN0w6f2b
+         NiFQgWPeB9hx1o8pFwPmxh9Qa55c7ici3UjwRn/F7rFn0VSzAqTwRU7QAJUizu9I2xT0
+         JIxGpbv2nJxJnYgIE5mDCWu07GpfwpzhKGI6eG705NpgZmnuavzJ+mx2OtUCFjA5VsZj
+         Np5V08Cnguzh4vflwQuf3S4pInrb8QpOCqfba++SE4pEQLbgr8SOoOKhS7VQeC+XKL9q
+         lSuw==
+X-Gm-Message-State: AJIora8/GCiAwA2UGY8wZA7iuwnRZpAyLy/6Mh99/V1NYfMLKL6JmNRM
+	eEMhDKrQg5ABMx0nqGgudG0=
+X-Google-Smtp-Source: 
+ AGRyM1sFD9bcbdzSpjXDlvoIE+L8SqCeXx9XLaApcPkSgwXvzavEDcMfL387kacADsMW6D3geeArEw==
+X-Received: by 2002:a17:90b:4a42:b0:1ec:ae10:3408 with SMTP id
+ lb2-20020a17090b4a4200b001ecae103408mr221715pjb.172.1656094887365;
+        Fri, 24 Jun 2022 11:21:27 -0700 (PDT)
+Received: from localhost.localdomain ([193.203.214.57])
+        by smtp.gmail.com with ESMTPSA id
+ bg2-20020a056a001f8200b00524e2f81727sm2018726pfb.74.2022.06.24.11.21.25
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Fri, 24 Jun 2022 11:21:26 -0700 (PDT)
+From: cgel.zte@gmail.com
+X-Google-Original-From: ran.xiaokai@zte.com.cn
+To: viro@zeniv.linux.org.uk,
+	hughd@google.com
+Cc: ran.xiaokai@zte.com.cn,
+	linux-fsdevel@vger.kernel.org,
+	linux-kernel@vger.kernel.org,
+	linux-mm@kvack.org
+Subject: [PATCH] drop caches: skip tmpfs and ramfs
+Date: Fri, 24 Jun 2022 18:21:21 +0000
+Message-Id: <20220624182121.995294-1-ran.xiaokai@zte.com.cn>
+X-Mailer: git-send-email 2.25.1
+MIME-Version: 1.0
+ARC-Authentication-Results: i=1;
+	imf13.hostedemail.com;
+	dkim=pass header.d=gmail.com header.s=20210112 header.b=VufbRJ4G;
+	dmarc=pass (policy=none) header.from=gmail.com;
+	spf=pass (imf13.hostedemail.com: domain of cgel.zte@gmail.com designates
+ 209.85.216.48 as permitted sender) smtp.mailfrom=cgel.zte@gmail.com
+ARC-Seal: i=1; s=arc-20220608; d=hostedemail.com; t=1656094888; a=rsa-sha256;
+	cv=none;
+	b=8NkzIrHbYpiyteOuG1hlQm37RpJ6svMihqkhYgFm3J7SoEqxZpf4SDsX7KoTJzsUB0XGuQ
+	V1jkO/iRrMPoG3HJQ0Pw7ESdShVbq68WCncl1DpeRsQZpv0jZj+NXCfMFNcezYitRafw40
+	mH9YSAOsHihRn0Bq6LIHOLO8BRyZiuk=
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=hostedemail.com;
+	s=arc-20220608; t=1656094888;
+	h=from:from:sender:reply-to:subject:subject:date:date:
+	 message-id:message-id:to:to:cc:cc:mime-version:mime-version:
+	 content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:in-reply-to:
+	 references:dkim-signature; bh=P5YJ65pvDdEwq3atTRzFu054q854VYDQ/r8rcFUwysg=;
+	b=SVAeds63hQho5dWWUeK1Gzondx3fOVXhJc2+d5yPh2hZDoFZE8rDqyJlxANAPmoa3yVyQN
+	YgfUyXk9OS3e/+60Sj3mmx2ntyKebxpbUWRImWVZsFX226VDiyEPMTGwAR6pxjU+BNZo2b
+	eqZ7SMaelN08nCnxNHJXwvh7Qme3Y/0=
+X-Stat-Signature: qkwbkcy85nccdjpbkhptbdkqigjjiswb
+X-Rspamd-Server: rspam08
+X-Rspam-User: 
+X-Rspamd-Queue-Id: 9AC9320017
+Authentication-Results: imf13.hostedemail.com;
+	dkim=pass header.d=gmail.com header.s=20210112 header.b=VufbRJ4G;
+	dmarc=pass (policy=none) header.from=gmail.com;
+	spf=pass (imf13.hostedemail.com: domain of cgel.zte@gmail.com designates
+ 209.85.216.48 as permitted sender) smtp.mailfrom=cgel.zte@gmail.com
+X-HE-Tag: 1656094888-630938
+X-Bogosity: Ham, tests=bogofilter, spamicity=0.000000, version=1.2.4
+Sender: owner-linux-mm@kvack.org
+Precedence: bulk
+X-Loop: owner-majordomo@kvack.org
+List-ID: <linux-mm.kvack.org>
+
+From: Ran Xiaokai <ran.xiaokai@zte.com.cn>
+
+All tmpfs and ramfs pages have PG_dirty bit set
+once they are allocated and added to the pagecache。So pages
+can not be freed from tmpfs or ramfs. So skip tmpfs and ramfs
+when drop caches.
+
+Signed-off-by: Ran Xiaokai <ran.xiaokai@zte.com.cn>
+---
+ fs/drop_caches.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/fs/drop_caches.c b/fs/drop_caches.c
+index 111111111..111111111 100644
+--- a/fs/drop_caches.c
++++ b/fs/drop_caches.c
+@@ -10,6 +10,7 @@
+ #include <linux/writeback.h>
+ #include <linux/sysctl.h>
+ #include <linux/gfp.h>
++#include <linux/magic.h>
+ #include "internal.h"
+ 
+ /* A global variable is a bit ugly, but it keeps the code simple */
+@@ -19,6 +20,9 @@ static void drop_pagecache_sb(struct super_block *sb, void *unused)
+ {
+ 	struct inode *inode, *toput_inode = NULL;
+ 
++	if (sb->s_magic == TMPFS_MAGIC || sb->s_magic == RAMFS_MAGIC)
++		return;
++
+ 	spin_lock(&sb->s_inode_list_lock);
+ 	list_for_each_entry(inode, &sb->s_inodes, i_sb_list) {
+ 		spin_lock(&inode->i_lock);

@@ -10,7 +10,7 @@ Signed-off-by: Alexandre Frade <admfrade@gmail.com>
  1 file changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
-index 5ddd575159fb..01e75d17f280 100644
+index 1111111..1111111 100644
 --- a/lib/Kconfig.debug
 +++ b/lib/Kconfig.debug
 @@ -190,7 +190,7 @@ config DYNAMIC_DEBUG_CORE
