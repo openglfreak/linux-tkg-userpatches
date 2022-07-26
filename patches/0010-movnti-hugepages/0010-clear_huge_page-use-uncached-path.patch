@@ -186,7 +186,7 @@ Signed-off-by: Ankur Arora <ankur.a.arora@oracle.com>
  4 files changed, 49 insertions(+), 7 deletions(-)
 
 diff --git a/include/linux/mm.h b/include/linux/mm.h
-index 1111111..1111111 100644
+index 111111111..111111111 100644
 --- a/include/linux/mm.h
 +++ b/include/linux/mm.h
 @@ -3302,7 +3302,8 @@ enum mf_action_page_type {
@@ -200,7 +200,7 @@ index 1111111..1111111 100644
  				unsigned long addr_hint,
  				struct vm_area_struct *vma,
 diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-index 1111111..1111111 100644
+index 111111111..111111111 100644
 --- a/mm/huge_memory.c
 +++ b/mm/huge_memory.c
 @@ -598,6 +598,7 @@ static vm_fault_t __do_huge_pmd_anonymous_page(struct vm_fault *vmf,
@@ -221,7 +221,7 @@ index 1111111..1111111 100644
  	 * The memory barrier inside __SetPageUptodate makes sure that
  	 * clear_huge_page writes become visible before the set_pmd_at()
 diff --git a/mm/hugetlb.c b/mm/hugetlb.c
-index 1111111..1111111 100644
+index 111111111..111111111 100644
 --- a/mm/hugetlb.c
 +++ b/mm/hugetlb.c
 @@ -5489,6 +5489,7 @@ static vm_fault_t hugetlb_no_page(struct mm_struct *mm,
@@ -242,7 +242,7 @@ index 1111111..1111111 100644
  		new_page = true;
  
 diff --git a/mm/memory.c b/mm/memory.c
-index 1111111..1111111 100644
+index 111111111..111111111 100644
 --- a/mm/memory.c
 +++ b/mm/memory.c
 @@ -83,6 +83,7 @@

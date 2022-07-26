@@ -185,7 +185,7 @@ Signed-off-by: Ankur Arora <ankur.a.arora@oracle.com>
  2 files changed, 48 insertions(+)
 
 diff --git a/include/linux/mm.h b/include/linux/mm.h
-index 1111111..1111111 100644
+index 111111111..111111111 100644
 --- a/include/linux/mm.h
 +++ b/include/linux/mm.h
 @@ -3328,6 +3328,24 @@ static inline bool vma_is_special_huge(const struct vm_area_struct *vma)
@@ -214,7 +214,7 @@ index 1111111..1111111 100644
  
  #ifndef clear_user_page_uncached
 diff --git a/mm/memory.c b/mm/memory.c
-index 1111111..1111111 100644
+index 111111111..111111111 100644
 --- a/mm/memory.c
 +++ b/mm/memory.c
 @@ -5572,6 +5572,36 @@ EXPORT_SYMBOL(__might_fault);

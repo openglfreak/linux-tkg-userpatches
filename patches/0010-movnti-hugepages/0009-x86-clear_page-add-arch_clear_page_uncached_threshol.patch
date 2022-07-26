@@ -181,7 +181,7 @@ Signed-off-by: Ankur Arora <ankur.a.arora@oracle.com>
  3 files changed, 20 insertions(+)
 
 diff --git a/arch/x86/include/asm/cacheinfo.h b/arch/x86/include/asm/cacheinfo.h
-index 1111111..1111111 100644
+index 111111111..111111111 100644
 --- a/arch/x86/include/asm/cacheinfo.h
 +++ b/arch/x86/include/asm/cacheinfo.h
 @@ -4,5 +4,6 @@
@@ -192,7 +192,7 @@ index 1111111..1111111 100644
  
  #endif /* _ASM_X86_CACHEINFO_H */
 diff --git a/arch/x86/kernel/cpu/cacheinfo.c b/arch/x86/kernel/cpu/cacheinfo.c
-index 1111111..1111111 100644
+index 111111111..111111111 100644
 --- a/arch/x86/kernel/cpu/cacheinfo.c
 +++ b/arch/x86/kernel/cpu/cacheinfo.c
 @@ -1034,3 +1034,16 @@ int populate_cache_leaves(unsigned int cpu)
@@ -213,7 +213,7 @@ index 1111111..1111111 100644
 +	return max_leaf->size;
 +}
 diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
-index 1111111..1111111 100644
+index 111111111..111111111 100644
 --- a/arch/x86/kernel/setup.c
 +++ b/arch/x86/kernel/setup.c
 @@ -50,6 +50,7 @@
