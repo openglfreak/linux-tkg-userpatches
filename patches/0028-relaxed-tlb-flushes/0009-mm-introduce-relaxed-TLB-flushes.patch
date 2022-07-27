@@ -156,9 +156,9 @@ diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
 index 111111111..111111111 100644
 --- a/include/asm-generic/tlb.h
 +++ b/include/asm-generic/tlb.h
-@@ -289,6 +289,11 @@ struct mmu_gather {
- 	unsigned int		vma_exec : 1;
+@@ -305,6 +305,11 @@ struct mmu_gather {
  	unsigned int		vma_huge : 1;
+ 	unsigned int		vma_pfn  : 1;
  
 +	/*
 +	 * wheteher we made flushing strict (add protection) or changed
@@ -168,7 +168,7 @@ index 111111111..111111111 100644
  	unsigned int		batch_count;
  
  #ifndef CONFIG_MMU_GATHER_NO_GATHER
-@@ -325,6 +330,7 @@ static inline void __tlb_reset_range(struct mmu_gather *tlb)
+@@ -341,6 +346,7 @@ static inline void __tlb_reset_range(struct mmu_gather *tlb)
  	tlb->cleared_pmds = 0;
  	tlb->cleared_puds = 0;
  	tlb->cleared_p4ds = 0;
@@ -176,7 +176,7 @@ index 111111111..111111111 100644
  	/*
  	 * Do not reset mmu_gather::vma_* fields here, we do not
  	 * call into tlb_start_vma() again to set them if there is an
-@@ -518,31 +524,43 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
+@@ -522,31 +528,43 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
   * and set corresponding cleared_*.
   */
  static inline void tlb_flush_pte_range(struct mmu_gather *tlb,
@@ -224,7 +224,7 @@ index 111111111..111111111 100644
  }
  
  #ifndef __tlb_remove_tlb_entry
-@@ -556,24 +574,24 @@ static inline void tlb_flush_p4d_range(struct mmu_gather *tlb,
+@@ -560,24 +578,24 @@ static inline void tlb_flush_p4d_range(struct mmu_gather *tlb,
   * so we can later optimise away the tlb invalidate.   This helps when
   * userspace is unmapping already-unmapped pages, which happens quite a lot.
   */
@@ -265,7 +265,7 @@ index 111111111..111111111 100644
  	} while (0)
  
  /**
-@@ -586,7 +604,7 @@ static inline void tlb_flush_p4d_range(struct mmu_gather *tlb,
+@@ -590,7 +608,7 @@ static inline void tlb_flush_p4d_range(struct mmu_gather *tlb,
  
  #define tlb_remove_pmd_tlb_entry(tlb, pmdp, address)			\
  	do {								\
@@ -274,7 +274,7 @@ index 111111111..111111111 100644
  		__tlb_remove_pmd_tlb_entry(tlb, pmdp, address);		\
  	} while (0)
  
-@@ -600,7 +618,7 @@ static inline void tlb_flush_p4d_range(struct mmu_gather *tlb,
+@@ -604,7 +622,7 @@ static inline void tlb_flush_p4d_range(struct mmu_gather *tlb,
  
  #define tlb_remove_pud_tlb_entry(tlb, pudp, address)			\
  	do {								\
@@ -283,7 +283,7 @@ index 111111111..111111111 100644
  		__tlb_remove_pud_tlb_entry(tlb, pudp, address);		\
  	} while (0)
  
-@@ -623,52 +641,52 @@ static inline void tlb_flush_p4d_range(struct mmu_gather *tlb,
+@@ -627,52 +645,52 @@ static inline void tlb_flush_p4d_range(struct mmu_gather *tlb,
   */
  
  #ifndef pte_free_tlb

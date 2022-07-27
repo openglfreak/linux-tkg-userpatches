@@ -49,7 +49,7 @@ diff --git a/arch/x86/include/asm/tlb.h b/arch/x86/include/asm/tlb.h
 index 111111111..111111111 100644
 --- a/arch/x86/include/asm/tlb.h
 +++ b/arch/x86/include/asm/tlb.h
-@@ -20,7 +20,8 @@ static inline void tlb_flush(struct mmu_gather *tlb)
+@@ -17,7 +17,8 @@ static inline void tlb_flush(struct mmu_gather *tlb)
  		end = tlb->end;
  	}
  
@@ -96,7 +96,7 @@ diff --git a/arch/x86/kernel/alternative.c b/arch/x86/kernel/alternative.c
 index 111111111..111111111 100644
 --- a/arch/x86/kernel/alternative.c
 +++ b/arch/x86/kernel/alternative.c
-@@ -1168,7 +1168,7 @@ static void *__text_poke(text_poke_f func, void *addr, const void *src, size_t l
+@@ -1170,7 +1170,7 @@ static void *__text_poke(text_poke_f func, void *addr, const void *src, size_t l
  	 */
  	flush_tlb_mm_range(poking_mm, poking_addr, poking_addr +
  			   (cross_page_boundary ? 2 : 1) * PAGE_SIZE,

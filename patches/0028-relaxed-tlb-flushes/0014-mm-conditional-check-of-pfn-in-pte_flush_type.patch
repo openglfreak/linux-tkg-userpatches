@@ -93,7 +93,7 @@ diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
 index 111111111..111111111 100644
 --- a/include/asm-generic/tlb.h
 +++ b/include/asm-generic/tlb.h
-@@ -677,14 +677,16 @@ static inline void tlb_flush_p4d_range(struct mmu_gather *tlb,
+@@ -681,14 +681,16 @@ static inline void tlb_flush_p4d_range(struct mmu_gather *tlb,
  #endif
  
  #ifndef pte_flush_type

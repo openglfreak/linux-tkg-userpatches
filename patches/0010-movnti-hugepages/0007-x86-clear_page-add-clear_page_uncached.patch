@@ -200,7 +200,7 @@ Notes:
  3 files changed, 67 insertions(+)
 
 diff --git a/arch/x86/include/asm/page_32.h b/arch/x86/include/asm/page_32.h
-index 111111111..111111111 100644
+index 1111111..1111111 100644
 --- a/arch/x86/include/asm/page_32.h
 +++ b/arch/x86/include/asm/page_32.h
 @@ -26,6 +26,19 @@ static inline void clear_page(void *page)
@@ -224,7 +224,7 @@ index 111111111..111111111 100644
  {
  	memcpy(to, from, PAGE_SIZE);
 diff --git a/arch/x86/include/asm/page_64.h b/arch/x86/include/asm/page_64.h
-index 111111111..111111111 100644
+index 1111111..1111111 100644
 --- a/arch/x86/include/asm/page_64.h
 +++ b/arch/x86/include/asm/page_64.h
 @@ -57,6 +57,42 @@ static inline void clear_page(void *page)
@@ -271,7 +271,7 @@ index 111111111..111111111 100644
  
  #ifdef CONFIG_X86_5LEVEL
 diff --git a/include/linux/mm.h b/include/linux/mm.h
-index 111111111..111111111 100644
+index 1111111..1111111 100644
 --- a/include/linux/mm.h
 +++ b/include/linux/mm.h
 @@ -3330,6 +3330,24 @@ static inline bool vma_is_special_huge(const struct vm_area_struct *vma)

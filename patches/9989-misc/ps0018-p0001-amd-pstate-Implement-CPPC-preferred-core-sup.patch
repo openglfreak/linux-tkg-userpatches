@@ -13,7 +13,7 @@ diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
 index 111111111..111111111 100644
 --- a/arch/x86/Kconfig
 +++ b/arch/x86/Kconfig
-@@ -1040,8 +1040,7 @@ config SCHED_MC
+@@ -1041,8 +1041,7 @@ config SCHED_MC
  
  config SCHED_MC_PRIO
  	bool "CPU core priorities scheduler support"
