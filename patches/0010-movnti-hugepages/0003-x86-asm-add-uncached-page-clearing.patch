@@ -261,6 +261,6 @@ index 1111111..1111111 100644
 +        addq    $0x40, %rdi
 +        subl    $0x40, %ecx
 +        ja      .Lstart
-+	ret
++	RET
 +SYM_FUNC_END(clear_page_movnt)
 

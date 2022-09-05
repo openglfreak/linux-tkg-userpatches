@@ -1,0 +1,13 @@
+diff --git a/drivers/acpi/processor_core.c b/drivers/acpi/processor_core.c
+index 2ac48cd..7b3095b 100644
+--- a/drivers/acpi/processor_core.c
++++ b/drivers/acpi/processor_core.c
+@@ -54,7 +54,7 @@ static int map_x2apic_id(struct acpi_subtable_header *entry,
+ 	if (!(apic->lapic_flags & ACPI_MADT_ENABLED))
+ 		return -ENODEV;
+ 
+-	if (device_declaration && (apic->uid == acpi_id)) {
++	if (apic->uid == acpi_id) {
+ 		*apic_id = apic->local_apic_id;
+ 		return 0;
+ 	}

@@ -1304,9 +1304,9 @@ index 111111111..111111111 100644
  	/* Undo any partial mapping done by a device driver. */
 -	unmap_region(mm, vma, prev, vma->vm_start, vma->vm_end);
 +	unmap_region(mm, mas.tree, vma, prev, next, vma->vm_start, vma->vm_end);
- 	charged = 0;
  	if (vm_flags & VM_SHARED)
  		mapping_unmap_writable(file->f_mapping);
+ free_vma:
 @@ -3022,11 +2920,12 @@ SYSCALL_DEFINE5(remap_file_pages, unsigned long, start, unsigned long, size,
  		goto out;
  

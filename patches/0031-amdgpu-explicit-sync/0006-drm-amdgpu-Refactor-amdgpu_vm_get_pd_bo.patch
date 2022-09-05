@@ -1,0 +1,164 @@
+From 154d66dae5a0677daf1aa803d99c26dbb5058bb2 Mon Sep 17 00:00:00 2001
+From: Bas Nieuwenhuizen <bas@basnieuwenhuizen.nl>
+Date: Wed, 27 Apr 2022 02:48:31 +0200
+Subject: [PATCH 6/8] drm/amdgpu: Refactor amdgpu_vm_get_pd_bo.
+
+We want to take only a BOOKKEEP usage for contexts that are not
+implicitly synced.
+
+Signed-off-by: Bas Nieuwenhuizen <bas@basnieuwenhuizen.nl>
+---
+ drivers/gpu/drm/amd/amdgpu/amdgpu_amdkfd_gpuvm.c | 9 +++++----
+ drivers/gpu/drm/amd/amdgpu/amdgpu_cs.c           | 2 +-
+ drivers/gpu/drm/amd/amdgpu/amdgpu_csa.c          | 2 +-
+ drivers/gpu/drm/amd/amdgpu/amdgpu_gem.c          | 4 ++--
+ drivers/gpu/drm/amd/amdgpu/amdgpu_mes.c          | 2 +-
+ drivers/gpu/drm/amd/amdgpu/amdgpu_vm.c           | 6 ++++--
+ drivers/gpu/drm/amd/amdgpu/amdgpu_vm.h           | 3 ++-
+ 7 files changed, 16 insertions(+), 12 deletions(-)
+
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_amdkfd_gpuvm.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_amdkfd_gpuvm.c
+index 746f44c1c3f97d..cc4fcc82eec1da 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_amdkfd_gpuvm.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_amdkfd_gpuvm.c
+@@ -923,7 +923,7 @@ static int reserve_bo_and_vm(struct kgd_mem *mem,
+ 	ctx->kfd_bo.tv.usage = DMA_RESV_USAGE_READ;
+ 	list_add(&ctx->kfd_bo.tv.head, &ctx->list);
+ 
+-	amdgpu_vm_get_pd_bo(vm, &ctx->list, &ctx->vm_pd[0]);
++	amdgpu_vm_get_pd_bo(vm, &ctx->list, &ctx->vm_pd[0], DMA_RESV_USAGE_READ);
+ 
+ 	ret = ttm_eu_reserve_buffers(&ctx->ticket, &ctx->list,
+ 				     false, &ctx->duplicates);
+@@ -995,7 +995,7 @@ static int reserve_bo_and_cond_vms(struct kgd_mem *mem,
+ 			continue;
+ 
+ 		amdgpu_vm_get_pd_bo(entry->bo_va->base.vm, &ctx->list,
+-				&ctx->vm_pd[i]);
++				&ctx->vm_pd[i], DMA_RESV_USAGE_READ);
+ 		i++;
+ 	}
+ 
+@@ -2203,7 +2203,7 @@ static int validate_invalid_user_pages(struct amdkfd_process_info *process_info)
+ 	list_for_each_entry(peer_vm, &process_info->vm_list_head,
+ 			    vm_list_node)
+ 		amdgpu_vm_get_pd_bo(peer_vm, &resv_list,
+-				    &pd_bo_list_entries[i++]);
++				    &pd_bo_list_entries[i++], DMA_RESV_USAGE_READ);
+ 	/* Add the userptr_inval_list entries to resv_list */
+ 	list_for_each_entry(mem, &process_info->userptr_inval_list,
+ 			    validate_list.head) {
+@@ -2399,7 +2399,8 @@ int amdgpu_amdkfd_gpuvm_restore_process_bos(void *info, struct dma_fence **ef)
+ 	mutex_lock(&process_info->lock);
+ 	list_for_each_entry(peer_vm, &process_info->vm_list_head,
+ 			vm_list_node)
+-		amdgpu_vm_get_pd_bo(peer_vm, &ctx.list, &pd_bo_list[i++]);
++		amdgpu_vm_get_pd_bo(peer_vm, &ctx.list, &pd_bo_list[i++],
++				    DMA_RESV_USAGE_READ);
+ 
+ 	/* Reserve all BOs and page tables/directory. Add all BOs from
+ 	 * kfd_bo_list to ctx.list
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_cs.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_cs.c
+index 91958e9db90bee..175fc2c2feec66 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_cs.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_cs.c
+@@ -531,7 +531,7 @@ static int amdgpu_cs_parser_bos(struct amdgpu_cs_parser *p,
+ 	amdgpu_bo_list_get_list(p->bo_list, &p->validated);
+ 
+ 	INIT_LIST_HEAD(&duplicates);
+-	amdgpu_vm_get_pd_bo(&fpriv->vm, &p->validated, &p->vm_pd);
++	amdgpu_vm_get_pd_bo(&fpriv->vm, &p->validated, &p->vm_pd, DMA_RESV_USAGE_READ);
+ 
+ 	if (p->uf_entry.tv.bo && !ttm_to_amdgpu_bo(p->uf_entry.tv.bo)->parent)
+ 		list_add(&p->uf_entry.tv.head, &p->validated);
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_csa.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_csa.c
+index 24941ed1a5ec9d..0cc2c863808f26 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_csa.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_csa.c
+@@ -78,7 +78,7 @@ int amdgpu_map_static_csa(struct amdgpu_device *adev, struct amdgpu_vm *vm,
+ 	csa_tv.usage = DMA_RESV_USAGE_READ;
+ 
+ 	list_add(&csa_tv.head, &list);
+-	amdgpu_vm_get_pd_bo(vm, &list, &pd);
++	amdgpu_vm_get_pd_bo(vm, &list, &pd, DMA_RESV_USAGE_READ);
+ 
+ 	r = ttm_eu_reserve_buffers(&ticket, &list, true, NULL);
+ 	if (r) {
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_gem.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_gem.c
+index f8cf52eb19312c..0f0e0acec6911e 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_gem.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_gem.c
+@@ -211,7 +211,7 @@ static void amdgpu_gem_object_close(struct drm_gem_object *obj,
+ 	tv.usage = DMA_RESV_USAGE_READ;
+ 	list_add(&tv.head, &list);
+ 
+-	amdgpu_vm_get_pd_bo(vm, &list, &vm_pd);
++	amdgpu_vm_get_pd_bo(vm, &list, &vm_pd, DMA_RESV_USAGE_READ);
+ 
+ 	r = ttm_eu_reserve_buffers(&ticket, &list, false, &duplicates);
+ 	if (r) {
+@@ -747,7 +747,7 @@ int amdgpu_gem_va_ioctl(struct drm_device *dev, void *data,
+ 		abo = NULL;
+ 	}
+ 
+-	amdgpu_vm_get_pd_bo(&fpriv->vm, &list, &vm_pd);
++	amdgpu_vm_get_pd_bo(&fpriv->vm, &list, &vm_pd, DMA_RESV_USAGE_READ);
+ 
+ 	r = ttm_eu_reserve_buffers(&ticket, &list, true, &duplicates);
+ 	if (r)
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_mes.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_mes.c
+index 6b1da37c228003..852057cccc54fc 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_mes.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_mes.c
+@@ -999,7 +999,7 @@ int amdgpu_mes_ctx_map_meta_data(struct amdgpu_device *adev,
+ 	csa_tv.usage = DMA_RESV_USAGE_READ;
+ 
+ 	list_add(&csa_tv.head, &list);
+-	amdgpu_vm_get_pd_bo(vm, &list, &pd);
++	amdgpu_vm_get_pd_bo(vm, &list, &pd, DMA_RESV_USAGE_READ);
+ 
+ 	r = ttm_eu_reserve_buffers(&ticket, &list, true, NULL);
+ 	if (r) {
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_vm.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_vm.c
+index 1b5d2317b9879d..17cfe16a68ce04 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_vm.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_vm.c
+@@ -313,19 +313,21 @@ void amdgpu_vm_bo_base_init(struct amdgpu_vm_bo_base *base,
+  * @vm: vm providing the BOs
+  * @validated: head of validation list
+  * @entry: entry to add
++ * @resv_usage: resv usage for the synchronization
+  *
+  * Add the page directory to the list of BOs to
+  * validate for command submission.
+  */
+ void amdgpu_vm_get_pd_bo(struct amdgpu_vm *vm,
+ 			 struct list_head *validated,
+-			 struct amdgpu_bo_list_entry *entry)
++			 struct amdgpu_bo_list_entry *entry,
++			 enum dma_resv_usage resv_usage)
+ {
+ 	entry->priority = 0;
+ 	entry->tv.bo = &vm->root.bo->tbo;
+ 	/* Two for VM updates, one for TTM and one for the CS job */
+ 	entry->tv.num_shared = 4;
+-	entry->tv.usage = DMA_RESV_USAGE_READ;
++	entry->tv.usage = resv_usage;
+ 	entry->user_pages = NULL;
+ 	list_add(&entry->tv.head, validated);
+ }
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_vm.h b/drivers/gpu/drm/amd/amdgpu/amdgpu_vm.h
+index 9ecb7f663e1967..da0de4df13efff 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_vm.h
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_vm.h
+@@ -386,7 +386,8 @@ void amdgpu_vm_release_compute(struct amdgpu_device *adev, struct amdgpu_vm *vm)
+ void amdgpu_vm_fini(struct amdgpu_device *adev, struct amdgpu_vm *vm);
+ void amdgpu_vm_get_pd_bo(struct amdgpu_vm *vm,
+ 			 struct list_head *validated,
+-			 struct amdgpu_bo_list_entry *entry);
++			 struct amdgpu_bo_list_entry *entry,
++			 enum dma_resv_usage resv_usage);
+ bool amdgpu_vm_ready(struct amdgpu_vm *vm);
+ int amdgpu_vm_validate_pt_bos(struct amdgpu_device *adev, struct amdgpu_vm *vm,
+ 			      int (*callback)(void *p, struct amdgpu_bo *bo),
+

@@ -283,7 +283,7 @@ index 111111111..111111111 100644
  		__tlb_remove_pud_tlb_entry(tlb, pudp, address);		\
  	} while (0)
  
-@@ -627,52 +645,52 @@ static inline void tlb_flush_p4d_range(struct mmu_gather *tlb,
+@@ -627,52 +645,53 @@ static inline void tlb_flush_p4d_range(struct mmu_gather *tlb,
   */
  
  #ifndef pte_free_tlb
@@ -329,16 +329,12 @@ index 111111111..111111111 100644
  #endif
  
  #ifndef p4d_free_tlb
--#define p4d_free_tlb(tlb, pudp, address)			\
--	do {							\
--		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
--		tlb->freed_tables = 1;				\
--		__p4d_free_tlb(tlb, pudp, address);		\
-+#define p4d_free_tlb(tlb, pudp, address)				\
-+	do {								\
-+		__tlb_adjust_range(tlb, address, PAGE_SIZE, true);	\
-+		tlb->freed_tables = 1;					\
-+		__p4d_free_tlb(tlb, pudp, address);			\
+ #define p4d_free_tlb(tlb, pudp, address)			\
+ 	do {							\
+ 		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
++		tlb->strict = 1;				\
+ 		tlb->freed_tables = 1;				\
+ 		__p4d_free_tlb(tlb, pudp, address);		\
  	} while (0)
  #endif
  

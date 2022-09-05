@@ -235,7 +235,7 @@ diff --git a/mm/mmap.c b/mm/mmap.c
 index 111111111..111111111 100644
 --- a/mm/mmap.c
 +++ b/mm/mmap.c
-@@ -1764,252 +1764,6 @@ static inline int accountable_mapping(struct file *file, vm_flags_t vm_flags)
+@@ -1764,251 +1764,6 @@ static inline int accountable_mapping(struct file *file, vm_flags_t vm_flags)
  	return (vm_flags & (VM_NORESERVE | VM_SHARED | VM_WRITE)) == VM_WRITE;
  }
  
@@ -473,7 +473,6 @@ index 111111111..111111111 100644
 -
 -	/* Undo any partial mapping done by a device driver. */
 -	unmap_region(mm, vma, prev, vma->vm_start, vma->vm_end);
--	charged = 0;
 -	if (vm_flags & VM_SHARED)
 -		mapping_unmap_writable(file->f_mapping);
 -free_vma:
@@ -488,7 +487,7 @@ index 111111111..111111111 100644
  /**
   * unmapped_area() - Find an area between the low_limit and the high_limit with
   * the correct alignment and offset, all from @info. Note: current->mm is used
-@@ -2883,6 +2637,252 @@ int do_munmap(struct mm_struct *mm, unsigned long start, size_t len,
+@@ -2883,6 +2637,251 @@ int do_munmap(struct mm_struct *mm, unsigned long start, size_t len,
  	return __do_munmap(mm, start, len, uf, false);
  }
  
@@ -726,7 +725,6 @@ index 111111111..111111111 100644
 +
 +	/* Undo any partial mapping done by a device driver. */
 +	unmap_region(mm, vma, prev, vma->vm_start, vma->vm_end);
-+	charged = 0;
 +	if (vm_flags & VM_SHARED)
 +		mapping_unmap_writable(file->f_mapping);
 +free_vma:

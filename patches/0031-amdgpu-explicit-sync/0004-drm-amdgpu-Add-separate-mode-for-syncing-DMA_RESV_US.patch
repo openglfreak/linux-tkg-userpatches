@@ -1,0 +1,205 @@
+From 55d86931807a9ea093879f33b2f549644f4a18fb Mon Sep 17 00:00:00 2001
+From: Bas Nieuwenhuizen <bas@basnieuwenhuizen.nl>
+Date: Sun, 3 Apr 2022 14:20:30 +0200
+Subject: [PATCH 4/8] drm/amdgpu: Add separate mode for syncing
+ DMA_RESV_USAGE_BOOKKEEP.
+
+To prep for allowing different sync modes in a follow-up patch.
+
+Signed-off-by: Bas Nieuwenhuizen <bas@basnieuwenhuizen.nl>
+---
+ drivers/gpu/drm/amd/amdgpu/amdgpu_amdkfd_gpuvm.c |  2 +-
+ drivers/gpu/drm/amd/amdgpu/amdgpu_cs.c           |  2 +-
+ drivers/gpu/drm/amd/amdgpu/amdgpu_object.c       | 11 +++++++----
+ drivers/gpu/drm/amd/amdgpu/amdgpu_object.h       |  3 ++-
+ drivers/gpu/drm/amd/amdgpu/amdgpu_sync.c         | 11 ++++++++---
+ drivers/gpu/drm/amd/amdgpu/amdgpu_sync.h         |  4 ++--
+ drivers/gpu/drm/amd/amdgpu/amdgpu_ttm.c          |  1 +
+ drivers/gpu/drm/amd/amdgpu/amdgpu_uvd.c          |  2 +-
+ drivers/gpu/drm/amd/amdgpu/amdgpu_vm_cpu.c       |  2 +-
+ drivers/gpu/drm/amd/amdgpu/amdgpu_vm_sdma.c      |  2 +-
+ 10 files changed, 25 insertions(+), 15 deletions(-)
+
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_amdkfd_gpuvm.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_amdkfd_gpuvm.c
+index a6eb7697c9363d..746f44c1c3f97d 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_amdkfd_gpuvm.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_amdkfd_gpuvm.c
+@@ -1158,7 +1158,7 @@ static int process_sync_pds_resv(struct amdkfd_process_info *process_info,
+ 		struct amdgpu_bo *pd = peer_vm->root.bo;
+ 
+ 		ret = amdgpu_sync_resv(NULL, sync, pd->tbo.base.resv,
+-				       AMDGPU_SYNC_NE_OWNER,
++				       AMDGPU_SYNC_NE_OWNER, AMDGPU_SYNC_NE_OWNER,
+ 				       AMDGPU_FENCE_OWNER_KFD);
+ 		if (ret)
+ 			return ret;
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_cs.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_cs.c
+index f1ceb25d1b8449..91958e9db90bee 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_cs.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_cs.c
+@@ -675,7 +675,7 @@ static int amdgpu_cs_sync_rings(struct amdgpu_cs_parser *p)
+ 		sync_mode = amdgpu_bo_explicit_sync(bo) ?
+ 			AMDGPU_SYNC_EXPLICIT : AMDGPU_SYNC_NE_OWNER;
+ 		r = amdgpu_sync_resv(p->adev, &p->job->sync, resv, sync_mode,
+-				     &fpriv->vm);
++				     AMDGPU_SYNC_EXPLICIT, &fpriv->vm);
+ 		if (r)
+ 			return r;
+ 	}
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_object.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_object.c
+index 2c82b1d5a0d79f..20c45f502536c0 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_object.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_object.c
+@@ -1410,7 +1410,8 @@ void amdgpu_bo_fence(struct amdgpu_bo *bo, struct dma_fence *fence,
+  *
+  * @adev: amdgpu device pointer
+  * @resv: reservation object to sync to
+- * @sync_mode: synchronization mode
++ * @implicit_sync_mode: synchronization mode for usage <= DMA_RESV_USAGE_READ
++ * @explicit_sync_mode: synchronization mode for usage DMA_RESV_USAGE_BOOKKEEP
+  * @owner: fence owner
+  * @intr: Whether the wait is interruptible
+  *
+@@ -1420,14 +1421,15 @@ void amdgpu_bo_fence(struct amdgpu_bo *bo, struct dma_fence *fence,
+  * 0 on success, errno otherwise.
+  */
+ int amdgpu_bo_sync_wait_resv(struct amdgpu_device *adev, struct dma_resv *resv,
+-			     enum amdgpu_sync_mode sync_mode, void *owner,
++			     enum amdgpu_sync_mode implicit_sync_mode,
++			     enum amdgpu_sync_mode explicit_sync_mode, void *owner,
+ 			     bool intr)
+ {
+ 	struct amdgpu_sync sync;
+ 	int r;
+ 
+ 	amdgpu_sync_create(&sync);
+-	amdgpu_sync_resv(adev, &sync, resv, sync_mode, owner);
++	amdgpu_sync_resv(adev, &sync, resv, implicit_sync_mode, explicit_sync_mode, owner);
+ 	r = amdgpu_sync_wait(&sync, intr);
+ 	amdgpu_sync_free(&sync);
+ 	return r;
+@@ -1448,7 +1450,8 @@ int amdgpu_bo_sync_wait(struct amdgpu_bo *bo, void *owner, bool intr)
+ 	struct amdgpu_device *adev = amdgpu_ttm_adev(bo->tbo.bdev);
+ 
+ 	return amdgpu_bo_sync_wait_resv(adev, bo->tbo.base.resv,
+-					AMDGPU_SYNC_NE_OWNER, owner, intr);
++					AMDGPU_SYNC_NE_OWNER, AMDGPU_SYNC_EXPLICIT,
++					owner, intr);
+ }
+ 
+ /**
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_object.h b/drivers/gpu/drm/amd/amdgpu/amdgpu_object.h
+index 147b79c10cbb6b..36ce9abb579cf7 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_object.h
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_object.h
+@@ -320,7 +320,8 @@ vm_fault_t amdgpu_bo_fault_reserve_notify(struct ttm_buffer_object *bo);
+ void amdgpu_bo_fence(struct amdgpu_bo *bo, struct dma_fence *fence,
+ 		     bool shared);
+ int amdgpu_bo_sync_wait_resv(struct amdgpu_device *adev, struct dma_resv *resv,
+-			     enum amdgpu_sync_mode sync_mode, void *owner,
++			     enum amdgpu_sync_mode implicit_sync_mode,
++			     enum amdgpu_sync_mode explicit_sync_mode, void *owner,
+ 			     bool intr);
+ int amdgpu_bo_sync_wait(struct amdgpu_bo *bo, void *owner, bool intr);
+ u64 amdgpu_bo_gpu_offset(struct amdgpu_bo *bo);
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_sync.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_sync.c
+index 504af1b93bfa84..de508cb3f6a526 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_sync.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_sync.c
+@@ -225,14 +225,15 @@ static bool amdgpu_sync_test_fence(struct amdgpu_device *adev,
+  * @adev: amdgpu device
+  * @sync: sync object to add fences from reservation object to
+  * @resv: reservation object with embedded fence
+- * @mode: how owner affects which fences we sync to
++ * @implicit_mode: how owner affects which fences with usage <= DMA_RESV_USAGE_READ we sync to
++ * @explicit_mode: how owner affects which fences with usage DMA_RESV_USAGE_BOOKKEEP we sync to
+  * @owner: owner of the planned job submission
+  *
+  * Sync to the fence
+  */
+ int amdgpu_sync_resv(struct amdgpu_device *adev, struct amdgpu_sync *sync,
+-		     struct dma_resv *resv, enum amdgpu_sync_mode mode,
+-		     void *owner)
++		     struct dma_resv *resv, enum amdgpu_sync_mode implicit_mode,
++		     enum amdgpu_sync_mode explicit_mode, void *owner)
+ {
+ 	struct dma_resv_iter cursor;
+ 	struct dma_fence *f;
+@@ -245,6 +246,10 @@ int amdgpu_sync_resv(struct amdgpu_device *adev, struct amdgpu_sync *sync,
+ 	dma_resv_for_each_fence(&cursor, resv, DMA_RESV_USAGE_BOOKKEEP, f) {
+ 		dma_fence_chain_for_each(f, f) {
+ 			struct dma_fence *tmp = dma_fence_chain_contained(f);
++			enum amdgpu_sync_mode mode = implicit_mode;
++
++			if (dma_resv_iter_usage(&cursor) >= DMA_RESV_USAGE_BOOKKEEP)
++				mode = explicit_mode;
+ 
+ 			if (amdgpu_sync_test_fence(adev, mode, owner, tmp)) {
+ 				r = amdgpu_sync_fence(sync, f);
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_sync.h b/drivers/gpu/drm/amd/amdgpu/amdgpu_sync.h
+index 2d5c613cda1029..57a39eedff78cf 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_sync.h
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_sync.h
+@@ -48,8 +48,8 @@ struct amdgpu_sync {
+ void amdgpu_sync_create(struct amdgpu_sync *sync);
+ int amdgpu_sync_fence(struct amdgpu_sync *sync, struct dma_fence *f);
+ int amdgpu_sync_resv(struct amdgpu_device *adev, struct amdgpu_sync *sync,
+-		     struct dma_resv *resv, enum amdgpu_sync_mode mode,
+-		     void *owner);
++		     struct dma_resv *resv, enum amdgpu_sync_mode implicit_mode,
++		     enum amdgpu_sync_mode explicit_mode, void *owner);
+ struct dma_fence *amdgpu_sync_peek_fence(struct amdgpu_sync *sync,
+ 				     struct amdgpu_ring *ring);
+ struct dma_fence *amdgpu_sync_get_fence(struct amdgpu_sync *sync);
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_ttm.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_ttm.c
+index 3b4c19412625dd..9d5fc6359191d1 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_ttm.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_ttm.c
+@@ -1978,6 +1978,7 @@ static int amdgpu_ttm_prepare_job(struct amdgpu_device *adev,
+ 	if (resv) {
+ 		r = amdgpu_sync_resv(adev, &(*job)->sync, resv,
+ 				     AMDGPU_SYNC_ALWAYS,
++				     AMDGPU_SYNC_EXPLICIT,
+ 				     AMDGPU_FENCE_OWNER_UNDEFINED);
+ 		if (r) {
+ 			DRM_ERROR("sync failed (%d).\n", r);
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_uvd.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_uvd.c
+index 6eac649499d366..de08bab400d5b9 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_uvd.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_uvd.c
+@@ -1176,7 +1176,7 @@ static int amdgpu_uvd_send_msg(struct amdgpu_ring *ring, struct amdgpu_bo *bo,
+ 			goto err_free;
+ 	} else {
+ 		r = amdgpu_sync_resv(adev, &job->sync, bo->tbo.base.resv,
+-				     AMDGPU_SYNC_ALWAYS,
++				     AMDGPU_SYNC_ALWAYS, AMDGPU_SYNC_ALWAYS,
+ 				     AMDGPU_FENCE_OWNER_UNDEFINED);
+ 		if (r)
+ 			goto err_free;
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_cpu.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_cpu.c
+index 31913ae86de6bb..f10332e1c6c0de 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_cpu.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_cpu.c
+@@ -51,7 +51,7 @@ static int amdgpu_vm_cpu_prepare(struct amdgpu_vm_update_params *p,
+ 	if (!resv)
+ 		return 0;
+ 
+-	return amdgpu_bo_sync_wait_resv(p->adev, resv, sync_mode, p->vm, true);
++	return amdgpu_bo_sync_wait_resv(p->adev, resv, sync_mode, sync_mode, p->vm, true);
+ }
+ 
+ /**
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_sdma.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_sdma.c
+index 1fd3cbca20a290..6ec6217f0b0e2e 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_sdma.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_sdma.c
+@@ -75,7 +75,7 @@ static int amdgpu_vm_sdma_prepare(struct amdgpu_vm_update_params *p,
+ 	if (!resv)
+ 		return 0;
+ 
+-	return amdgpu_sync_resv(p->adev, &p->job->sync, resv, sync_mode, p->vm);
++	return amdgpu_sync_resv(p->adev, &p->job->sync, resv, sync_mode, sync_mode, p->vm);
+ }
+ 
+ /**
+

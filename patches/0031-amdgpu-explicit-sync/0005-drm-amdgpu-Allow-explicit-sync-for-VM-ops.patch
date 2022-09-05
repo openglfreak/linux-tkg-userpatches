@@ -1,0 +1,47 @@
+From 67054f979facdb09108dc6c09ec8244193014da5 Mon Sep 17 00:00:00 2001
+From: Bas Nieuwenhuizen <bas@basnieuwenhuizen.nl>
+Date: Wed, 27 Apr 2022 01:54:33 +0200
+Subject: [PATCH 5/8] drm/amdgpu: Allow explicit sync for VM ops.
+
+This should be okay because moves themselves use KERNEL usage and
+hence still sync with BOOKKEEP usage. Then any later submits still
+wait on any pending VM operations.
+
+(i.e. we only made VM ops not wait on BOOKKEEP submits, not the other
+ way around)
+
+Signed-off-by: Bas Nieuwenhuizen <bas@basnieuwenhuizen.nl>
+---
+ drivers/gpu/drm/amd/amdgpu/amdgpu_vm_cpu.c  | 3 ++-
+ drivers/gpu/drm/amd/amdgpu/amdgpu_vm_sdma.c | 3 ++-
+ 2 files changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_cpu.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_cpu.c
+index f10332e1c6c0de..e898a549f86ddf 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_cpu.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_cpu.c
+@@ -51,7 +51,8 @@ static int amdgpu_vm_cpu_prepare(struct amdgpu_vm_update_params *p,
+ 	if (!resv)
+ 		return 0;
+ 
+-	return amdgpu_bo_sync_wait_resv(p->adev, resv, sync_mode, sync_mode, p->vm, true);
++	return amdgpu_bo_sync_wait_resv(p->adev, resv, sync_mode,
++					AMDGPU_SYNC_EXPLICIT, p->vm, true);
+ }
+ 
+ /**
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_sdma.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_sdma.c
+index 6ec6217f0b0e2e..9233ea3c9404fc 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_sdma.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_sdma.c
+@@ -75,7 +75,8 @@ static int amdgpu_vm_sdma_prepare(struct amdgpu_vm_update_params *p,
+ 	if (!resv)
+ 		return 0;
+ 
+-	return amdgpu_sync_resv(p->adev, &p->job->sync, resv, sync_mode, sync_mode, p->vm);
++	return amdgpu_sync_resv(p->adev, &p->job->sync, resv, sync_mode,
++				AMDGPU_SYNC_EXPLICIT, p->vm);
+ }
+ 
+ /**
+

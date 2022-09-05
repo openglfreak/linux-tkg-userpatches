@@ -1,0 +1,29 @@
+From 0b340a00e65ce75c0f370f16459b2f01739568d2 Mon Sep 17 00:00:00 2001
+From: Bas Nieuwenhuizen <bas@basnieuwenhuizen.nl>
+Date: Tue, 2 Aug 2022 02:48:43 +0200
+Subject: [PATCH 8/8] drm/amdgpu: Bump amdgpu driver version.
+
+For detection of the new explicit sync functionality without
+having to try the ioctl.
+
+Signed-off-by: Bas Nieuwenhuizen <bas@basnieuwenhuizen.nl>
+---
+ drivers/gpu/drm/amd/amdgpu/amdgpu_drv.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_drv.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_drv.c
+index 8890300766a5b9..6d92e8846b217c 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_drv.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_drv.c
+@@ -101,9 +101,10 @@
+  * - 3.45.0 - Add context ioctl stable pstate interface
+  * - 3.46.0 - To enable hot plug amdgpu tests in libdrm
+  * * 3.47.0 - Add AMDGPU_GEM_CREATE_DISCARDABLE and AMDGPU_VM_NOALLOC flags
++ * - 3.48.0 - Add AMDGPU_CTX_OP_SET_IMPLICIT_SYNC context operation.
+  */
+ #define KMS_DRIVER_MAJOR	3
+-#define KMS_DRIVER_MINOR	47
++#define KMS_DRIVER_MINOR	48
+ #define KMS_DRIVER_PATCHLEVEL	0
+ 
+ int amdgpu_vram_limit;

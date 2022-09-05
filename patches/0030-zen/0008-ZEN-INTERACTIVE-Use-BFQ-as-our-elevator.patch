@@ -1,0 +1,51 @@
+From 33a7b49740c01b2ebf0aab11ee13299aa51635d0 Mon Sep 17 00:00:00 2001
+From: "Jan Alexander Steffens (heftig)" <jan.steffens@gmail.com>
+Date: Mon, 27 Jan 2020 18:11:05 +0100
+Subject: [PATCH 08/17] ZEN: INTERACTIVE: Use BFQ as our elevator
+
+Add a scheduler even to multi-queue block devices: We prefer
+interactivity to throughput and want BFQ if possible.
+---
+ block/elevator.c | 6 ++++++
+ init/Kconfig     | 4 ++++
+ 2 files changed, 10 insertions(+)
+
+diff --git a/block/elevator.c b/block/elevator.c
+index c319765892bb9..062c1c055559b 100644
+--- a/block/elevator.c
++++ b/block/elevator.c
+@@ -638,11 +638,17 @@ static struct elevator_type *elevator_get_default(struct request_queue *q)
+ 	if (q->tag_set && q->tag_set->flags & BLK_MQ_F_NO_SCHED_BY_DEFAULT)
+ 		return NULL;
+ 
++#ifndef CONFIG_ZENIFY
+ 	if (q->nr_hw_queues != 1 &&
+ 	    !blk_mq_is_shared_tags(q->tag_set->flags))
+ 		return NULL;
++#endif
+ 
+-	return elevator_get(q, "bfq", false);
++#if defined(CONFIG_ZENIFY) && defined(CONFIG_IOSCHED_BFQ)
++	return elevator_get(q, "bfq", false);
++#else
++	return elevator_get(q, "mq-deadline", false);
++#endif
+ }
+ 
+ /*
+diff --git a/init/Kconfig b/init/Kconfig
+index 40b922be8c2af..fb5f80b921d04 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -122,6 +122,10 @@ config ZENIFY
+ 	help
+ 	  Tunes the kernel for responsiveness at the cost of throughput and power usage.
+ 
++	  --- Block Layer ----------------------------------------
++
++	    Default scheduler.........: mq-deadline -> bfq
++
+ config BROKEN
+ 	bool
+ 
+

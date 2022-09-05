@@ -23,6 +23,23 @@ index 111111111..111111111 100644
  	select CPU_FREQ
  	default y
  	help
+diff --git a/arch/x86/kernel/itmt.c b/arch/x86/kernel/itmt.c
+index 9ff480e..539ce7a 100644
+--- a/arch/x86/kernel/itmt.c
++++ b/arch/x86/kernel/itmt.c
+@@ -131,6 +131,7 @@ int sched_set_itmt_support(void)
+ 
+ 	return 0;
+ }
++EXPORT_SYMBOL_GPL(sched_set_itmt_support);
+ 
+ /**
+  * sched_clear_itmt_support() - Revoke platform's support of ITMT
+@@ -203,3 +204,4 @@ void sched_set_itmt_core_prio(int prio, int core_cpu)
+ 		i++;
+ 	}
+ }
++EXPORT_SYMBOL_GPL(sched_set_itmt_core_prio);
 diff --git a/drivers/cpufreq/amd-pstate.c b/drivers/cpufreq/amd-pstate.c
 index 111111111..111111111 100644
 --- a/drivers/cpufreq/amd-pstate.c

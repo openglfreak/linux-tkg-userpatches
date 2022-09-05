@@ -1,0 +1,27 @@
+From 8245681577cf994601c0a8fffe2c8fc9bdcd6382 Mon Sep 17 00:00:00 2001
+From: "Jan Alexander Steffens (heftig)" <jan.steffens@gmail.com>
+Date: Mon, 27 Jan 2020 18:10:06 +0100
+Subject: [PATCH 07/17] ZEN: INTERACTIVE: Base config item
+
+---
+ init/Kconfig | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/init/Kconfig b/init/Kconfig
+index 5b5f9ea153d3e..40b922be8c2af 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -116,6 +116,12 @@ config THREAD_INFO_IN_TASK
+ 
+ menu "General setup"
+ 
++config ZENIFY
++	bool "Tune kernel for interactivity"
++	default y
++	help
++	  Tunes the kernel for responsiveness at the cost of throughput and power usage.
++
+ config BROKEN
+ 	bool
+ 
+

@@ -1,0 +1,32 @@
+From 9cc0f5315b5f312f91de0645b6a944e24cb5848d Mon Sep 17 00:00:00 2001
+From: Sultan Alsawaf <sultan@kerneltoast.com>
+Date: Sat, 24 Oct 2020 22:17:49 -0700
+Subject: [PATCH 16/17] ZEN: INTERACTIVE: mm: Disable proactive compaction by
+ default
+
+On-demand compaction works fine assuming that you don't have a need to
+spam the page allocator nonstop for large order page allocations.
+
+Signed-off-by: Sultan Alsawaf <sultan@kerneltoast.com>
+---
+ init/Kconfig    | 1 +
+ mm/compaction.c | 4 ++++
+ 2 files changed, 5 insertions(+)
+
+diff --git a/mm/compaction.c b/mm/compaction.c
+index 04b62fb353b4f..e813973ee0f18 100644
+--- a/mm/compaction.c
++++ b/mm/compaction.c
+@@ -2718,7 +2718,11 @@ static void compact_nodes(void)
+  * aggressively the kernel should compact memory in the
+  * background. It takes values in the range [0, 100].
+  */
++#ifdef CONFIG_ZENIFY
++unsigned int __read_mostly sysctl_compaction_proactiveness;
++#else
+ unsigned int __read_mostly sysctl_compaction_proactiveness = 20;
++#endif
+ 
+ int compaction_proactiveness_sysctl_handler(struct ctl_table *table, int write,
+ 		void *buffer, size_t *length, loff_t *ppos)
+

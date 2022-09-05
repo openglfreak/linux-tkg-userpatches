@@ -1,0 +1,163 @@
+From 5126014b7e4558873754dc46a0eea8746e6aaeff Mon Sep 17 00:00:00 2001
+From: Bas Nieuwenhuizen <bas@basnieuwenhuizen.nl>
+Date: Sun, 3 Apr 2022 15:20:08 +0200
+Subject: [PATCH 7/8] drm/amdgpu: Add option to disable implicit sync for a
+ context.
+
+This changes all BO usages in a submit to BOOKKEEP instead of READ,
+which effectively disables implicit sync for these submits.
+
+This is configured at a context level using the existing IOCTL.
+
+Signed-off-by: Bas Nieuwenhuizen <bas@basnieuwenhuizen.nl>
+---
+ drivers/gpu/drm/amd/amdgpu/amdgpu_cs.c  | 13 ++++++----
+ drivers/gpu/drm/amd/amdgpu/amdgpu_ctx.c | 32 +++++++++++++++++++++++--
+ drivers/gpu/drm/amd/amdgpu/amdgpu_ctx.h |  1 +
+ include/uapi/drm/amdgpu_drm.h           |  3 +++
+ 4 files changed, 43 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_cs.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_cs.c
+index 175fc2c2feec66..5246defa4de85f 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_cs.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_cs.c
+@@ -500,6 +500,7 @@ static int amdgpu_cs_parser_bos(struct amdgpu_cs_parser *p,
+ 	struct amdgpu_bo *gws;
+ 	struct amdgpu_bo *oa;
+ 	int r;
++	enum dma_resv_usage resv_usage;
+ 
+ 	INIT_LIST_HEAD(&p->validated);
+ 
+@@ -522,16 +523,19 @@ static int amdgpu_cs_parser_bos(struct amdgpu_cs_parser *p,
+ 
+ 	mutex_lock(&p->bo_list->bo_list_mutex);
+ 
++	resv_usage = p->ctx->disable_implicit_sync ? DMA_RESV_USAGE_BOOKKEEP :
++						     DMA_RESV_USAGE_READ;
++
+ 	/* One for TTM and one for the CS job */
+ 	amdgpu_bo_list_for_each_entry(e, p->bo_list) {
+ 		e->tv.num_shared = 2;
+-		e->tv.usage = DMA_RESV_USAGE_READ;
++		e->tv.usage = resv_usage;
+ 	}
+ 
+ 	amdgpu_bo_list_get_list(p->bo_list, &p->validated);
+ 
+ 	INIT_LIST_HEAD(&duplicates);
+-	amdgpu_vm_get_pd_bo(&fpriv->vm, &p->validated, &p->vm_pd, DMA_RESV_USAGE_READ);
++	amdgpu_vm_get_pd_bo(&fpriv->vm, &p->validated, &p->vm_pd, resv_usage);
+ 
+ 	if (p->uf_entry.tv.bo && !ttm_to_amdgpu_bo(p->uf_entry.tv.bo)->parent)
+ 		list_add(&p->uf_entry.tv.head, &p->validated);
+@@ -672,7 +676,7 @@ static int amdgpu_cs_sync_rings(struct amdgpu_cs_parser *p)
+ 		struct dma_resv *resv = bo->tbo.base.resv;
+ 		enum amdgpu_sync_mode sync_mode;
+ 
+-		sync_mode = amdgpu_bo_explicit_sync(bo) ?
++		sync_mode = (amdgpu_bo_explicit_sync(bo) || p->ctx->disable_implicit_sync) ?
+ 			AMDGPU_SYNC_EXPLICIT : AMDGPU_SYNC_NE_OWNER;
+ 		r = amdgpu_sync_resv(p->adev, &p->job->sync, resv, sync_mode,
+ 				     AMDGPU_SYNC_EXPLICIT, &fpriv->vm);
+@@ -1287,7 +1291,8 @@ static int amdgpu_cs_submit(struct amdgpu_cs_parser *p,
+ 	/* Make sure all BOs are remembered as writers */
+ 	amdgpu_bo_list_for_each_entry(e, p->bo_list) {
+ 		e->tv.num_shared = 0;
+-		e->tv.usage = DMA_RESV_USAGE_WRITE;
++		e->tv.usage = p->ctx->disable_implicit_sync ? DMA_RESV_USAGE_BOOKKEEP
++							    : DMA_RESV_USAGE_WRITE;
+ 	}
+ 
+ 	ttm_eu_fence_buffer_objects(&p->ticket, &p->validated, p->fence);
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_ctx.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_ctx.c
+index 7dc92ef36b2b06..c01140a449da1d 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_ctx.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_ctx.c
+@@ -596,8 +596,6 @@ static int amdgpu_ctx_query2(struct amdgpu_device *adev,
+ 	return 0;
+ }
+ 
+-
+-
+ static int amdgpu_ctx_stable_pstate(struct amdgpu_device *adev,
+ 				    struct amdgpu_fpriv *fpriv, uint32_t id,
+ 				    bool set, u32 *stable_pstate)
+@@ -626,6 +624,30 @@ static int amdgpu_ctx_stable_pstate(struct amdgpu_device *adev,
+ 	return r;
+ }
+ 
++static int amdgpu_ctx_set_implicit_sync(struct amdgpu_device *adev,
++					struct amdgpu_fpriv *fpriv, uint32_t id,
++					bool enable)
++{
++	struct amdgpu_ctx *ctx;
++	struct amdgpu_ctx_mgr *mgr;
++
++	if (!fpriv)
++		return -EINVAL;
++
++	mgr = &fpriv->ctx_mgr;
++	mutex_lock(&mgr->lock);
++	ctx = idr_find(&mgr->ctx_handles, id);
++	if (!ctx) {
++		mutex_unlock(&mgr->lock);
++		return -EINVAL;
++	}
++
++	ctx->disable_implicit_sync = !enable;
++
++	mutex_unlock(&mgr->lock);
++	return 0;
++}
++
+ int amdgpu_ctx_ioctl(struct drm_device *dev, void *data,
+ 		     struct drm_file *filp)
+ {
+@@ -674,6 +696,12 @@ int amdgpu_ctx_ioctl(struct drm_device *dev, void *data,
+ 			return -EINVAL;
+ 		r = amdgpu_ctx_stable_pstate(adev, fpriv, id, true, &stable_pstate);
+ 		break;
++	case AMDGPU_CTX_OP_SET_IMPLICIT_SYNC:
++		if ((args->in.flags & ~AMDGPU_CTX_IMPICIT_SYNC_ENABLED) || args->in.priority)
++			return -EINVAL;
++		r = amdgpu_ctx_set_implicit_sync(adev, fpriv, id,
++						 args->in.flags & ~AMDGPU_CTX_IMPICIT_SYNC_ENABLED);
++		break;
+ 	default:
+ 		return -EINVAL;
+ 	}
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_ctx.h b/drivers/gpu/drm/amd/amdgpu/amdgpu_ctx.h
+index cc7c8afff4144c..60149a7de4fca0 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_ctx.h
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_ctx.h
+@@ -58,6 +58,7 @@ struct amdgpu_ctx {
+ 	unsigned long			ras_counter_ce;
+ 	unsigned long			ras_counter_ue;
+ 	uint32_t			stable_pstate;
++	bool				disable_implicit_sync;
+ };
+ 
+ struct amdgpu_ctx_mgr {
+diff --git a/include/uapi/drm/amdgpu_drm.h b/include/uapi/drm/amdgpu_drm.h
+index 18d3246d636ef9..27e61466b5d004 100644
+--- a/include/uapi/drm/amdgpu_drm.h
++++ b/include/uapi/drm/amdgpu_drm.h
+@@ -212,6 +212,7 @@ union drm_amdgpu_bo_list {
+ #define AMDGPU_CTX_OP_QUERY_STATE2	4
+ #define AMDGPU_CTX_OP_GET_STABLE_PSTATE	5
+ #define AMDGPU_CTX_OP_SET_STABLE_PSTATE	6
++#define AMDGPU_CTX_OP_SET_IMPLICIT_SYNC	7
+ 
+ /* GPU reset status */
+ #define AMDGPU_CTX_NO_RESET		0
+@@ -252,6 +253,8 @@ union drm_amdgpu_bo_list {
+ #define AMDGPU_CTX_STABLE_PSTATE_MIN_MCLK  3
+ #define AMDGPU_CTX_STABLE_PSTATE_PEAK  4
+ 
++#define AMDGPU_CTX_IMPICIT_SYNC_ENABLED 1
++
+ struct drm_amdgpu_ctx_in {
+ 	/** AMDGPU_CTX_OP_* */
+ 	__u32	op;
+
