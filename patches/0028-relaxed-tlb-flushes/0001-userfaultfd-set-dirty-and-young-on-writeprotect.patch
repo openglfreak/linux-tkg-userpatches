@@ -95,15 +95,14 @@ diff --git a/mm/userfaultfd.c b/mm/userfaultfd.c
 index 111111111..111111111 100644
 --- a/mm/userfaultfd.c
 +++ b/mm/userfaultfd.c
-@@ -709,6 +709,7 @@ int mwriteprotect_range(struct mm_struct *dst_mm, unsigned long start,
+@@ -709,15 +709,17 @@ void uffd_wp_range(struct mm_struct *dst_mm, struct vm_area_struct *dst_vma,
  {
- 	struct vm_area_struct *dst_vma;
- 	unsigned long page_mask;
-+	unsigned long cp_flags;
  	struct mmu_gather tlb;
  	pgprot_t newprot;
- 	int err;
-@@ -755,9 +756,10 @@ int mwriteprotect_range(struct mm_struct *dst_mm, unsigned long start,
++	unsigned long cp_flags;
+ 
+ 	if (enable_wp)
+ 		newprot = vm_get_page_prot(dst_vma->vm_flags & ~(VM_WRITE));
  	else
  		newprot = vm_get_page_prot(dst_vma->vm_flags);
  

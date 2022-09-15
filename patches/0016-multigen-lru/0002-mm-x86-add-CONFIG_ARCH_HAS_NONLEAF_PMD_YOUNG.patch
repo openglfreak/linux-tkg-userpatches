@@ -1,76 +1,77 @@
-From patchwork Wed Jul  6 22:00:11 2022
+From patchwork Mon Aug 15 07:13:21 2022
 Content-Type: text/plain; charset="utf-8"
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 X-Patchwork-Submitter: Yu Zhao <yuzhao@google.com>
-X-Patchwork-Id: 12908700
+X-Patchwork-Id: 12943189
 Return-Path: <owner-linux-mm@kvack.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from kanga.kvack.org (kanga.kvack.org [205.233.56.17])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id CAC87C433EF
-	for <linux-mm@archiver.kernel.org>; Wed,  6 Jul 2022 22:00:56 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2B282C282E7
+	for <linux-mm@archiver.kernel.org>; Mon, 15 Aug 2022 07:14:19 +0000 (UTC)
 Received: by kanga.kvack.org (Postfix)
-	id 154F66B0073; Wed,  6 Jul 2022 18:00:56 -0400 (EDT)
+	id 8E7226B0075; Mon, 15 Aug 2022 03:14:18 -0400 (EDT)
 Received: by kanga.kvack.org (Postfix, from userid 40)
-	id 0B6EE6B0074; Wed,  6 Jul 2022 18:00:56 -0400 (EDT)
+	id 86D898D0001; Mon, 15 Aug 2022 03:14:18 -0400 (EDT)
 X-Delivered-To: int-list-linux-mm@kvack.org
 Received: by kanga.kvack.org (Postfix, from userid 63042)
-	id E729E6B0075; Wed,  6 Jul 2022 18:00:55 -0400 (EDT)
+	id 6225A6B007B; Mon, 15 Aug 2022 03:14:18 -0400 (EDT)
 X-Delivered-To: linux-mm@kvack.org
-Received: from relay.hostedemail.com (smtprelay0016.hostedemail.com
- [216.40.44.16])
-	by kanga.kvack.org (Postfix) with ESMTP id D9E9C6B0073
-	for <linux-mm@kvack.org>; Wed,  6 Jul 2022 18:00:55 -0400 (EDT)
-Received: from smtpin22.hostedemail.com (a10.router.float.18 [10.200.18.1])
-	by unirelay06.hostedemail.com (Postfix) with ESMTP id 9F16534610
-	for <linux-mm@kvack.org>; Wed,  6 Jul 2022 22:00:55 +0000 (UTC)
-X-FDA: 79658045670.22.8A546BF
-Received: from mail-yb1-f201.google.com (mail-yb1-f201.google.com
- [209.85.219.201])
-	by imf12.hostedemail.com (Postfix) with ESMTP id 0D92C40033
-	for <linux-mm@kvack.org>; Wed,  6 Jul 2022 22:00:53 +0000 (UTC)
-Received: by mail-yb1-f201.google.com with SMTP id
- m68-20020a253f47000000b006683bd91962so12445167yba.0
-        for <linux-mm@kvack.org>; Wed, 06 Jul 2022 15:00:53 -0700 (PDT)
+Received: from relay.hostedemail.com (smtprelay0017.hostedemail.com
+ [216.40.44.17])
+	by kanga.kvack.org (Postfix) with ESMTP id 4F89A6B0075
+	for <linux-mm@kvack.org>; Mon, 15 Aug 2022 03:14:18 -0400 (EDT)
+Received: from smtpin05.hostedemail.com (a10.router.float.18 [10.200.18.1])
+	by unirelay08.hostedemail.com (Postfix) with ESMTP id 29D6F14031F
+	for <linux-mm@kvack.org>; Mon, 15 Aug 2022 07:14:18 +0000 (UTC)
+X-FDA: 79800963396.05.8C8BBA3
+Received: from mail-yb1-f202.google.com (mail-yb1-f202.google.com
+ [209.85.219.202])
+	by imf22.hostedemail.com (Postfix) with ESMTP id AB685C000A
+	for <linux-mm@kvack.org>; Mon, 15 Aug 2022 07:14:17 +0000 (UTC)
+Received: by mail-yb1-f202.google.com with SMTP id
+ y2-20020a25bb82000000b0068c18dad92aso83440ybg.13
+        for <linux-mm@kvack.org>; Mon, 15 Aug 2022 00:14:17 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20210112;
-        h=date:in-reply-to:message-id:mime-version:references:subject:from:to
-         :cc:content-transfer-encoding;
-        bh=Yske1o/9q5kvxCT6Do7fK+m0Z7RMKAIlwEA5dqQMV6o=;
-        b=ScyLwm63xSUVYY78eVpIKf7E4l6uHPJ8SKqWyYLqNgfcQS9rJpZhYXa+GvIYC8VFxz
-         2VFStSncvwevlF5a8SeHX4Xsz1oxV5uuYYiB5ijS1hgFnqmnWUZ92SAkit2dsdOrKkVm
-         doRskpr19skWYdTit7iDaFWDHSkEjmp1FnyOwnhb4K1iob0FZUGliEmOjr11tQKlaxMl
-         A7gk8PUbqgtBAB5FxJW674j5ErsQXUNEF0mV9mDiI18iHiW2zTe0Jvp4coFt/YGkO03P
-         +mGZgU80OTVBNdIcmd9CUSdknj31pHlFfc27NA1Hoqf7YpOu3eL0SW+Jp946t/R7w6FH
-         wLdA==
+        h=content-transfer-encoding:cc:to:from:subject:references
+         :mime-version:message-id:in-reply-to:date:from:to:cc;
+        bh=+K6f0/4jX+jKnK8wFp8yh3bewm2bUjE0+0/Xv+vCPNE=;
+        b=qiz6LyvodJhBbvwsZ23v8IyelLyAbuUig5lBBh+S0NmhNx2GvkVG+nJ2wfizF6upPm
+         Ir96pYXZohODg4j+4ncY5LzXhaE630UGQleMABz5UgIwe2hM5LE01eB02XBC9ykNiV5d
+         6ZY4GCusPmvEWt6ot5fecF9Wj5AGHpa5Yt2hhnrJUp/XAhiXftCe/OgdQuu73p65Nee8
+         oXTR/1Ph5ZjNsUBM+2wdMXAY1zaOjl13sRpRy2i/fcg2dUyBfN5qcwJL9xdcKSR4ZurP
+         7zfhadGWpQk50HZuKj9G4tGmAG2tkulbJF7Fg/4miHhwxM8n/k6WvLYGhRSeM81ofS0H
+         Cccg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
-        h=x-gm-message-state:date:in-reply-to:message-id:mime-version
-         :references:subject:from:to:cc:content-transfer-encoding;
-        bh=Yske1o/9q5kvxCT6Do7fK+m0Z7RMKAIlwEA5dqQMV6o=;
-        b=XVonL9oPc/dGS0Lj1bwrmAxlSwptN2oDguArTP7th8VxXdXwHpn2oGKmURoazynnWW
-         GaxAg33Dr4knllzhF6wCdcowLA++/AgQbdQfMwZEbDkgdPMiKz+9twLafdDp2twVELPc
-         mZFyE0neVCe8OAOes5N5stgxrIPJyGN+cmejA7EFYbUXD5yKaVHVWEbZ1DKvs+vkVfYH
-         4I7Mc++TN9sTNUODcCZv7eNmy5ddfKdhs8ZEqmBzkQQl+6Nyi2IUxEa3YeftDVQx6pqJ
-         7oPE/pTcwcjKcRm4Bn+MZj1FE7of9UClcR0Wd4ZoxSRmvPtCnOiV9G4yZyDcGkpaBUWh
-         +quA==
-X-Gm-Message-State: AJIora81vFHYbn7du42CA/tgPDfWrrUd4KS2ldCuwHG08ccHdOGjEtup
-	i9hDsoVZxoG9FtGAgLFxbBinusC9kmE=
+        h=content-transfer-encoding:cc:to:from:subject:references
+         :mime-version:message-id:in-reply-to:date:x-gm-message-state:from:to
+         :cc;
+        bh=+K6f0/4jX+jKnK8wFp8yh3bewm2bUjE0+0/Xv+vCPNE=;
+        b=5JGdUDo8Rcy8Yyh/Xp7w2dcLV7fTUVE779Js/q7q1lYe34TgXei6snvyOdsPiJ8528
+         cy4FfiPnT4o2MgBdgrMAFcvpwRjbBx5zHQ8nx7qIdEKDxkmoLL8NKURgVrErGjnnkvYV
+         w4XHgOW9JVxe2bkeVhwjKtIe7I/sIYyLnWBdIMdCTIzSw9FvGxR3SOdMkO2PeXoH7Ohk
+         92eedcOr3AoZjWvrM3+OeiXs+w3g/MIN5eFBSxOekFAvovdlLAd41UD1mZmOdMpn2uOg
+         C9jaGapOjKeLRCz/S7EhJ8fCYHQuQA6FMp0I1JgkQrmFcogf1vHot0O7L9Z353iS0gpg
+         LklQ==
+X-Gm-Message-State: ACgBeo03OaG9AzcV4zwXO5qnBk0UcKClvXSwcTt5YflISEqdgdU71g7A
+	+9DtyeDExelnYeXbwPW4A2LHbJgwKEo=
 X-Google-Smtp-Source: 
- AGRyM1uPiyB7rEJDdAsYAVesh6XcxF7m4/NOwgKHx35NtLh0WZv9A8PqKLV1Gu8X5xOooB/DS/0V1C1QSZU=
+ AA6agR70hzrTklSq7wn9nioaQyvoT/xV0PaM8wHQtwVNUey7E+zWJrPZ9O9d7RYylUL3mYq7qjVywbsIe9A=
 X-Received: from yuzhao.bld.corp.google.com
- ([2620:15c:183:200:b89c:e10a:466e:cf7d])
- (user=yuzhao job=sendgmr) by 2002:a25:390:0:b0:66e:b9c7:b46c with SMTP id
- 138-20020a250390000000b0066eb9c7b46cmr172371ybd.505.1657144853349; Wed, 06
- Jul 2022 15:00:53 -0700 (PDT)
-Date: Wed,  6 Jul 2022 16:00:11 -0600
-In-Reply-To: <20220706220022.968789-1-yuzhao@google.com>
-Message-Id: <20220706220022.968789-3-yuzhao@google.com>
+ ([2620:15c:183:200:d91:5887:ac93:ddf0])
+ (user=yuzhao job=sendgmr) by 2002:a05:6902:1206:b0:676:e465:24b1 with SMTP id
+ s6-20020a056902120600b00676e46524b1mr10764993ybu.323.1660547656945; Mon, 15
+ Aug 2022 00:14:16 -0700 (PDT)
+Date: Mon, 15 Aug 2022 01:13:21 -0600
+In-Reply-To: <20220815071332.627393-1-yuzhao@google.com>
+Message-Id: <20220815071332.627393-3-yuzhao@google.com>
 Mime-Version: 1.0
-References: <20220706220022.968789-1-yuzhao@google.com>
-X-Mailer: git-send-email 2.37.0.rc0.161.g10f37bed90-goog
-Subject: [PATCH v13 02/14] mm: x86: add CONFIG_ARCH_HAS_NONLEAF_PMD_YOUNG
+References: <20220815071332.627393-1-yuzhao@google.com>
+X-Mailer: git-send-email 2.37.1.595.g718a3a8f04-goog
+Subject: [PATCH v14 02/14] mm: x86: add CONFIG_ARCH_HAS_NONLEAF_PMD_YOUNG
 From: Yu Zhao <yuzhao@google.com>
 To: Andrew Morton <akpm@linux-foundation.org>
 Cc: Andi Kleen <ak@linux.intel.com>,
@@ -98,43 +99,43 @@ Cc: Andi Kleen <ak@linux.intel.com>,
  Konstantin Kharlamov <Hi-Angel@yandex.ru>,
   Shuang Zhai <szhai2@cs.rochester.edu>, Sofia Trinh <sofia.trinh@edi.works>,
   Vaibhav Jain <vaibhav@linux.ibm.com>
-ARC-Seal: i=1; s=arc-20220608; d=hostedemail.com; t=1657144854; a=rsa-sha256;
+ARC-Seal: i=1; s=arc-20220608; d=hostedemail.com; t=1660547657; a=rsa-sha256;
 	cv=none;
-	b=ba2dVYmnfxk8QTCdMBgkSodQNf9QrUzHc+vrIrNl2fGKaUM0VC5LUOkOS0Uam92Z/fgIw+
-	J3iBf4wOdpf9YxVZLpvnO/CvPz7LzU7dbaCIsHjkTYZyjSGj5b5H8veJBlUQe2PyEhqktl
-	KdZlmcrPxuSkAHBseFs2D8j/Mhzx2nw=
+	b=3gEU2ux3ORlrdlvFf4eB8Z/0OOyuO6tOQgjdLoE3M3oLWPaK8kHCrlbivchxffTDUCuK0J
+	89/Ujc9eMJpH5K4/kGVQfhBvV/naQthoqtq8zOGI2WSlIw6mMP5M0zbQutLA9gSNLl99WN
+	tRB+xkXPCexJ+SKTX8dW0tZ1Jo9oSxg=
 ARC-Authentication-Results: i=1;
-	imf12.hostedemail.com;
-	dkim=pass header.d=google.com header.s=20210112 header.b=ScyLwm63;
-	dmarc=pass (policy=reject) header.from=google.com;
-	spf=pass (imf12.hostedemail.com: domain of
- 3FQbGYgYKCFYMIN5yC4CC492.0CA96BIL-AA8Jy08.CF4@flex--yuzhao.bounces.google.com
- designates 209.85.219.201 as permitted sender)
- smtp.mailfrom=3FQbGYgYKCFYMIN5yC4CC492.0CA96BIL-AA8Jy08.CF4@flex--yuzhao.bounces.google.com
+	imf22.hostedemail.com;
+	dkim=pass header.d=google.com header.s=20210112 header.b=qiz6Lyvo;
+	spf=pass (imf22.hostedemail.com: domain of
+ 3SPL5YgYKCDMnjoWPdVddVaT.RdbaXcjm-bbZkPRZ.dgV@flex--yuzhao.bounces.google.com
+ designates 209.85.219.202 as permitted sender)
+ smtp.mailfrom=3SPL5YgYKCDMnjoWPdVddVaT.RdbaXcjm-bbZkPRZ.dgV@flex--yuzhao.bounces.google.com;
+	dmarc=pass (policy=reject) header.from=google.com
 ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed;
  d=hostedemail.com;
-	s=arc-20220608; t=1657144854;
+	s=arc-20220608; t=1660547657;
 	h=from:from:sender:reply-to:subject:subject:date:date:
 	 message-id:message-id:to:to:cc:cc:mime-version:mime-version:
 	 content-type:content-type:
 	 content-transfer-encoding:content-transfer-encoding:
 	 in-reply-to:in-reply-to:references:references:dkim-signature;
-	bh=Yske1o/9q5kvxCT6Do7fK+m0Z7RMKAIlwEA5dqQMV6o=;
-	b=TMdhE0VPqYoVfu/UiVKCUJJu+4spbPZ1vrUaXbX8Pa9OP/6dtZAs1KcJMK2kLgdUvhO8E9
-	UX8x+Y/myW5EAlPfC2BrKGzFE9TjBUVGeJYESpLIZg2lf658PqCu5GAkoM5vFZRBG80nvF
-	ObTkOxqzk+IkvR3PYDfWaVzYP1bgmkU=
-Authentication-Results: imf12.hostedemail.com;
-	dkim=pass header.d=google.com header.s=20210112 header.b=ScyLwm63;
-	dmarc=pass (policy=reject) header.from=google.com;
-	spf=pass (imf12.hostedemail.com: domain of
- 3FQbGYgYKCFYMIN5yC4CC492.0CA96BIL-AA8Jy08.CF4@flex--yuzhao.bounces.google.com
- designates 209.85.219.201 as permitted sender)
- smtp.mailfrom=3FQbGYgYKCFYMIN5yC4CC492.0CA96BIL-AA8Jy08.CF4@flex--yuzhao.bounces.google.com
-X-Stat-Signature: u9s859meeaiiqe5mxswoozqtkc4fepwx
-X-Rspamd-Queue-Id: 0D92C40033
-X-Rspamd-Server: rspam05
+	bh=+K6f0/4jX+jKnK8wFp8yh3bewm2bUjE0+0/Xv+vCPNE=;
+	b=DQ5iu8AjWu6k1WAXE+PILW0hR8Gha2zV6FpwNj8HCqtwmcBKqR8FmeGAXsJt63YVKdou/X
+	17Ue9dcouTDYJYg3n6hZtpPoFrTEajwplQLsqM929y0v4szbZNFLWpy7YSZ0D31Ojh8hRM
+	4fIuzinqOHBVOObuziLSMiIwWLyEhhA=
 X-Rspam-User: 
-X-HE-Tag: 1657144853-88353
+X-Stat-Signature: adfkgp3dccqqyotsdgh4ztq1m9wgkdu3
+X-Rspamd-Queue-Id: AB685C000A
+Authentication-Results: imf22.hostedemail.com;
+	dkim=pass header.d=google.com header.s=20210112 header.b=qiz6Lyvo;
+	spf=pass (imf22.hostedemail.com: domain of
+ 3SPL5YgYKCDMnjoWPdVddVaT.RdbaXcjm-bbZkPRZ.dgV@flex--yuzhao.bounces.google.com
+ designates 209.85.219.202 as permitted sender)
+ smtp.mailfrom=3SPL5YgYKCDMnjoWPdVddVaT.RdbaXcjm-bbZkPRZ.dgV@flex--yuzhao.bounces.google.com;
+	dmarc=pass (policy=reject) header.from=google.com
+X-Rspamd-Server: rspam01
+X-HE-Tag: 1660547657-697987
 X-Bogosity: Ham, tests=bogofilter, spamicity=0.000000, version=1.2.4
 Sender: owner-linux-mm@kvack.org
 Precedence: bulk
@@ -185,10 +186,10 @@ Tested-by: Vaibhav Jain <vaibhav@linux.ibm.com>
  5 files changed, 17 insertions(+), 4 deletions(-)
 
 diff --git a/arch/Kconfig b/arch/Kconfig
-index 111111111..111111111 100644
+index f330410da63a..ebea10a4513e 100644
 --- a/arch/Kconfig
 +++ b/arch/Kconfig
-@@ -1410,6 +1410,14 @@ config DYNAMIC_SIGFRAME
+@@ -1416,6 +1416,14 @@ config DYNAMIC_SIGFRAME
  config HAVE_ARCH_NODE_DEV_GROUP
  	bool
  
@@ -204,7 +205,7 @@ index 111111111..111111111 100644
  
  source "scripts/gcc-plugins/Kconfig"
 diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 111111111..111111111 100644
+index f9920f1341c8..674d694a665e 100644
 --- a/arch/x86/Kconfig
 +++ b/arch/x86/Kconfig
 @@ -85,6 +85,7 @@ config X86
@@ -216,7 +217,7 @@ index 111111111..111111111 100644
  	select ARCH_HAS_COPY_MC			if X86_64
  	select ARCH_HAS_SET_MEMORY
 diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
-index 111111111..111111111 100644
+index dc5f7d8ef68a..5059799bebe3 100644
 --- a/arch/x86/include/asm/pgtable.h
 +++ b/arch/x86/include/asm/pgtable.h
 @@ -815,7 +815,8 @@ static inline unsigned long pmd_page_vaddr(pmd_t pmd)
@@ -230,7 +231,7 @@ index 111111111..111111111 100644
  
  static inline unsigned long pages_to_mb(unsigned long npg)
 diff --git a/arch/x86/mm/pgtable.c b/arch/x86/mm/pgtable.c
-index 111111111..111111111 100644
+index a932d7712d85..8525f2876fb4 100644
 --- a/arch/x86/mm/pgtable.c
 +++ b/arch/x86/mm/pgtable.c
 @@ -550,7 +550,7 @@ int ptep_test_and_clear_young(struct vm_area_struct *vma,
@@ -253,7 +254,7 @@ index 111111111..111111111 100644
  			      unsigned long addr, pud_t *pudp)
  {
 diff --git a/include/linux/pgtable.h b/include/linux/pgtable.h
-index 111111111..111111111 100644
+index 95f408df4695..d9095251bffd 100644
 --- a/include/linux/pgtable.h
 +++ b/include/linux/pgtable.h
 @@ -213,7 +213,7 @@ static inline int ptep_test_and_clear_young(struct vm_area_struct *vma,

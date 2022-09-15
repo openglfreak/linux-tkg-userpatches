@@ -1,76 +1,77 @@
-From patchwork Wed Jul  6 22:00:18 2022
+From patchwork Mon Aug 15 07:13:28 2022
 Content-Type: text/plain; charset="utf-8"
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 X-Patchwork-Submitter: Yu Zhao <yuzhao@google.com>
-X-Patchwork-Id: 12908706
+X-Patchwork-Id: 12943196
 Return-Path: <owner-linux-mm@kvack.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from kanga.kvack.org (kanga.kvack.org [205.233.56.17])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 4EB4BCCA480
-	for <linux-mm@archiver.kernel.org>; Wed,  6 Jul 2022 22:01:11 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id EBB4CC282E7
+	for <linux-mm@archiver.kernel.org>; Mon, 15 Aug 2022 07:14:31 +0000 (UTC)
 Received: by kanga.kvack.org (Postfix)
-	id BDBC98E0005; Wed,  6 Jul 2022 18:01:06 -0400 (EDT)
+	id 6EA8F6B0082; Mon, 15 Aug 2022 03:14:28 -0400 (EDT)
 Received: by kanga.kvack.org (Postfix, from userid 40)
-	id B8B188E0001; Wed,  6 Jul 2022 18:01:06 -0400 (EDT)
+	id 5D4448D0001; Mon, 15 Aug 2022 03:14:28 -0400 (EDT)
 X-Delivered-To: int-list-linux-mm@kvack.org
 Received: by kanga.kvack.org (Postfix, from userid 63042)
-	id A05548E0005; Wed,  6 Jul 2022 18:01:06 -0400 (EDT)
+	id 42A076B0085; Mon, 15 Aug 2022 03:14:28 -0400 (EDT)
 X-Delivered-To: linux-mm@kvack.org
-Received: from relay.hostedemail.com (smtprelay0011.hostedemail.com
- [216.40.44.11])
-	by kanga.kvack.org (Postfix) with ESMTP id 8B02E8E0001
-	for <linux-mm@kvack.org>; Wed,  6 Jul 2022 18:01:06 -0400 (EDT)
-Received: from smtpin07.hostedemail.com (a10.router.float.18 [10.200.18.1])
-	by unirelay08.hostedemail.com (Postfix) with ESMTP id 5322D218C7
-	for <linux-mm@kvack.org>; Wed,  6 Jul 2022 22:01:06 +0000 (UTC)
-X-FDA: 79658046132.07.9DE38CF
-Received: from mail-yw1-f201.google.com (mail-yw1-f201.google.com
- [209.85.128.201])
-	by imf28.hostedemail.com (Postfix) with ESMTP id 97908C0054
-	for <linux-mm@kvack.org>; Wed,  6 Jul 2022 22:01:05 +0000 (UTC)
-Received: by mail-yw1-f201.google.com with SMTP id
- 00721157ae682-31c8c7138ebso70710887b3.17
-        for <linux-mm@kvack.org>; Wed, 06 Jul 2022 15:01:05 -0700 (PDT)
+Received: from relay.hostedemail.com (smtprelay0017.hostedemail.com
+ [216.40.44.17])
+	by kanga.kvack.org (Postfix) with ESMTP id 0D7446B0082
+	for <linux-mm@kvack.org>; Mon, 15 Aug 2022 03:14:28 -0400 (EDT)
+Received: from smtpin01.hostedemail.com (a10.router.float.18 [10.200.18.1])
+	by unirelay10.hostedemail.com (Postfix) with ESMTP id DE7A4C01B8
+	for <linux-mm@kvack.org>; Mon, 15 Aug 2022 07:14:27 +0000 (UTC)
+X-FDA: 79800963774.01.E0B8889
+Received: from mail-yb1-f202.google.com (mail-yb1-f202.google.com
+ [209.85.219.202])
+	by imf22.hostedemail.com (Postfix) with ESMTP id 66748C0013
+	for <linux-mm@kvack.org>; Mon, 15 Aug 2022 07:14:27 +0000 (UTC)
+Received: by mail-yb1-f202.google.com with SMTP id
+ y2-20020a25bb82000000b0068c18dad92aso83633ybg.13
+        for <linux-mm@kvack.org>; Mon, 15 Aug 2022 00:14:27 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20210112;
-        h=date:in-reply-to:message-id:mime-version:references:subject:from:to
-         :cc:content-transfer-encoding;
-        bh=ZS7i+zWbsuFYZiRlenI/F/Y7PzZj3Cv3ABmuogIV+d0=;
-        b=Is9nnwDLdoF8cmdhQhl8FEZEIPLZOTCQNPziPrZ3WCv4Hkh+8SM7Qirn2/JzlJe5Qt
-         IMzoKhGVVu62zPGO2f8uqvwVO7ZBpwGEu3Y0nx+xsR+UR6rSMs9BgDYfSl6hxumhEzXQ
-         AVU29P45SCq1drQE+AuDu2NsKyQ+R9NLi2XNN7GjQzGIS59mnKnciabxZ70kUwocqXEh
-         TsuagDSQmmH5SjPkOzOUNm6Sk8f3JEhf7X8a1bPpbg+ozA3KspzkTBjkMrHomLe9ffcm
-         BFgwNEyH9XBgnj0m4gnfT2SYRWWY1k3MsXJMQ+zIJmqc6vDRB4WpYW/qGMJadOFCZfMM
-         nXgA==
+        h=content-transfer-encoding:cc:to:from:subject:references
+         :mime-version:message-id:in-reply-to:date:from:to:cc;
+        bh=5eUro1Ys65PlYEqsgNKi16f/oPtNjC98bqZv1yckg04=;
+        b=EB8amhRSjr6akZtRJpJd3EbVK5+m7OZimLU3f1TX6110F1KqnW4WpnJt8XFow2IRTP
+         ZblIfviXz3UrCUCTrYg8On2uNDBjJtniWRX9QYBRMli1hFiVLZAFh4YA+S05Qi39c0xT
+         Dzyv9cBuHv3M3cs9EPK2CtKrtnT9L9flJv91JwQv6yjUmMNFsc1BxLVGdxgalAJNNa4U
+         ldMrM1RlDpTthS9li0XcUfSpz/6FwY1aPtZVbwsG8YI4+2wHqpjOUZ8BFUBdnGxyij4I
+         QkOgsdGdwTSfzBuS31n/8w9gh5PpaY3vWxvDvWrjMIivtuWaExuM/ADamWAlrYjHYE5x
+         nujQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
-        h=x-gm-message-state:date:in-reply-to:message-id:mime-version
-         :references:subject:from:to:cc:content-transfer-encoding;
-        bh=ZS7i+zWbsuFYZiRlenI/F/Y7PzZj3Cv3ABmuogIV+d0=;
-        b=RCS2awk0QPdb9ZH7wNOyKeKXpab1x67IIAx6j5zq56jXzEwz7GXRfLumdFrGKXCGb4
-         Ni9Rp5dJZYzq8bxw94GX64zJKMTSoJ4V+UAQj4zSBLEczJlyZKy/yWOit9ZSOEb0iMvR
-         4+5mHFOU3YS4X1wdcqI8B4TLEOn1Me9mvfoveMAhSf8VHEhQ3neJrM0mY0hrTiGCSK5A
-         J4de3u3SGUe8nuXf8ZpGc38zd9x6oFOeBCUdjka6ao55yXPRLAwyLVnsLaRAKC6md3fT
-         VHJAQ+yfE2vhF9ga9RIwItKKGhAOJVHWoDcC3pQb9GfR0/p6eeP/23lc7iaFdQYywDcG
-         ckOQ==
-X-Gm-Message-State: AJIora9+K81MvAVQpqZj+MVKlE2AQLbnYpnFjbMqoGoc4IJHROymV58Z
-	hBHBT8xaW7KW2eD0IR1+YvgbPP1Vazg=
+        h=content-transfer-encoding:cc:to:from:subject:references
+         :mime-version:message-id:in-reply-to:date:x-gm-message-state:from:to
+         :cc;
+        bh=5eUro1Ys65PlYEqsgNKi16f/oPtNjC98bqZv1yckg04=;
+        b=19YIC1E/neVhfo8binto/2Tag+win+UTYpS8Cfqq3YiFskGwwLAUvzvX+g/9FdLroA
+         bWGL1PEPXhMahFRljYDkuZanoDKK+1b0Gqlbku7HBm2XFPpBiAM5Nh0DrHmxX7UHhpaM
+         D4kcEa85sRoFpmbCSoI3piYkHkDicO4YFrTgMExkx9bUIzjJUZKfr5brWkCSLCwVVVGJ
+         FqxEO0Fq7Q8q40GGbRmDWduUe92OsOMCROY9/IFwsNuev1ptRCKde3FaS/xAY1kv+AaW
+         yssJFOVRm5B9YoL4RlR0o+T89h/zunQcSSzzJhjgsH7uE3GyfILDJ44TFLqEqAAM9S4E
+         7lmQ==
+X-Gm-Message-State: ACgBeo2WvhprMVgZWQ4WfYU7rxy4R/oTQbOWsZKDX21Bi3ZiRXVAtHgm
+	9KU2bCcCx7FUGXiXJ6RTAcIAGXX7OQU=
 X-Google-Smtp-Source: 
- AGRyM1uwFcCEi/xhgZ0h4sIMbRvSkHm3hRssR6SxZ63hO5m3+xAhe4vRctYY9iQ6nmc/njn1u9BXzW/MiYM=
+ AA6agR669YNMXgcKgGcmGvzMJKETmvy/CAH14Ch6T2S9fJbFuil9iZjGHFjOhKoiLRsskelSJ4q76RDP/iM=
 X-Received: from yuzhao.bld.corp.google.com
- ([2620:15c:183:200:b89c:e10a:466e:cf7d])
- (user=yuzhao job=sendgmr) by 2002:a25:abb3:0:b0:66e:2f9a:4201 with SMTP id
- v48-20020a25abb3000000b0066e2f9a4201mr26479914ybi.125.1657144864829; Wed, 06
- Jul 2022 15:01:04 -0700 (PDT)
-Date: Wed,  6 Jul 2022 16:00:18 -0600
-In-Reply-To: <20220706220022.968789-1-yuzhao@google.com>
-Message-Id: <20220706220022.968789-10-yuzhao@google.com>
+ ([2620:15c:183:200:d91:5887:ac93:ddf0])
+ (user=yuzhao job=sendgmr) by 2002:a81:1206:0:b0:32f:ecac:f0f with SMTP id
+ 6-20020a811206000000b0032fecac0f0fmr5286066yws.495.1660547666940; Mon, 15 Aug
+ 2022 00:14:26 -0700 (PDT)
+Date: Mon, 15 Aug 2022 01:13:28 -0600
+In-Reply-To: <20220815071332.627393-1-yuzhao@google.com>
+Message-Id: <20220815071332.627393-10-yuzhao@google.com>
 Mime-Version: 1.0
-References: <20220706220022.968789-1-yuzhao@google.com>
-X-Mailer: git-send-email 2.37.0.rc0.161.g10f37bed90-goog
-Subject: [PATCH v13 09/14] mm: multi-gen LRU: optimize multiple memcgs
+References: <20220815071332.627393-1-yuzhao@google.com>
+X-Mailer: git-send-email 2.37.1.595.g718a3a8f04-goog
+Subject: [PATCH v14 09/14] mm: multi-gen LRU: optimize multiple memcgs
 From: Yu Zhao <yuzhao@google.com>
 To: Andrew Morton <akpm@linux-foundation.org>
 Cc: Andi Kleen <ak@linux.intel.com>,
@@ -98,43 +99,43 @@ Cc: Andi Kleen <ak@linux.intel.com>,
  Konstantin Kharlamov <Hi-Angel@yandex.ru>,
   Shuang Zhai <szhai2@cs.rochester.edu>, Sofia Trinh <sofia.trinh@edi.works>,
   Vaibhav Jain <vaibhav@linux.ibm.com>
-ARC-Seal: i=1; s=arc-20220608; d=hostedemail.com; t=1657144865; a=rsa-sha256;
+ARC-Seal: i=1; s=arc-20220608; d=hostedemail.com; t=1660547667; a=rsa-sha256;
 	cv=none;
-	b=q3V8GcW5a7gLdEkDRvzjbN1oCqdl/PcNPOBK/4yn5O6DZ96fhshx4mHlVqwifd6VM/h6DQ
-	bokhlmu8Wk2Z61Pnli47ITBMWiwbyG5GqreBCrRln1NfcGXS0mPhEW7lQeDU+ca5XNHA6R
-	1crW4jbDQ+Ez8oz8X4F5X5OxrI6ddoA=
+	b=TY1bwBgMluL7VBqmfDMyU71uPM5gj7uj25QWSIK6Ns+Yks07BMWndQPmn9V3oIGs3UzVHG
+	cSK12mCQM58HKHhdG/SYIMHqq5eWLID8RqNcoaro2HDUPrt4d6/AskhB8+mYZPz1UHi0Hk
+	CMHM4MmZSXlEfHiEnrPgntgs9hpyJTU=
 ARC-Authentication-Results: i=1;
-	imf28.hostedemail.com;
-	dkim=pass header.d=google.com header.s=20210112 header.b=Is9nnwDL;
-	dmarc=pass (policy=reject) header.from=google.com;
-	spf=pass (imf28.hostedemail.com: domain of
- 3IAbGYgYKCGEXTYG9NFNNFKD.BNLKHMTW-LLJU9BJ.NQF@flex--yuzhao.bounces.google.com
- designates 209.85.128.201 as permitted sender)
- smtp.mailfrom=3IAbGYgYKCGEXTYG9NFNNFKD.BNLKHMTW-LLJU9BJ.NQF@flex--yuzhao.bounces.google.com
+	imf22.hostedemail.com;
+	dkim=pass header.d=google.com header.s=20210112 header.b=EB8amhRS;
+	spf=pass (imf22.hostedemail.com: domain of
+ 3UvL5YgYKCD0xtygZnfnnfkd.bnlkhmtw-lljuZbj.nqf@flex--yuzhao.bounces.google.com
+ designates 209.85.219.202 as permitted sender)
+ smtp.mailfrom=3UvL5YgYKCD0xtygZnfnnfkd.bnlkhmtw-lljuZbj.nqf@flex--yuzhao.bounces.google.com;
+	dmarc=pass (policy=reject) header.from=google.com
 ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed;
  d=hostedemail.com;
-	s=arc-20220608; t=1657144865;
+	s=arc-20220608; t=1660547667;
 	h=from:from:sender:reply-to:subject:subject:date:date:
 	 message-id:message-id:to:to:cc:cc:mime-version:mime-version:
 	 content-type:content-type:
 	 content-transfer-encoding:content-transfer-encoding:
 	 in-reply-to:in-reply-to:references:references:dkim-signature;
-	bh=ZS7i+zWbsuFYZiRlenI/F/Y7PzZj3Cv3ABmuogIV+d0=;
-	b=fen/7hqEjb4DZZ+j8OhMLxCTQaBQg1nYoyqyzaLOG2yllRdoXgC8upN+NQjx2/OsQCSFdY
-	tIpgzM/hy9Vb35EZoTXPI0b6U/1kGDSWHJyLMU3CkJKzSF9lMbdGm9UdAtXJ/1dnB/CxlX
-	R3DdBW8MzocpYgtBQDvKhNaIKlqhdRg=
-X-Rspamd-Server: rspam08
-X-Rspamd-Queue-Id: 97908C0054
+	bh=5eUro1Ys65PlYEqsgNKi16f/oPtNjC98bqZv1yckg04=;
+	b=NFuBOxeUcHxqnerdjoLhSU4dVpLTgFTB/IdcmDZm3z7MzdlAoOwcbkD4Nv3u+4tY400fDZ
+	fFE3RxvqTzWEX8H4RyZ9uCK5fHSdGFbGhXyKl8S8qD8LgwEUFwPhjcas0+T1jOPJU/oo5y
+	zxEtM6P8NkdtMN1vfCyE/Pt6bOsyugU=
 X-Rspam-User: 
-Authentication-Results: imf28.hostedemail.com;
-	dkim=pass header.d=google.com header.s=20210112 header.b=Is9nnwDL;
-	dmarc=pass (policy=reject) header.from=google.com;
-	spf=pass (imf28.hostedemail.com: domain of
- 3IAbGYgYKCGEXTYG9NFNNFKD.BNLKHMTW-LLJU9BJ.NQF@flex--yuzhao.bounces.google.com
- designates 209.85.128.201 as permitted sender)
- smtp.mailfrom=3IAbGYgYKCGEXTYG9NFNNFKD.BNLKHMTW-LLJU9BJ.NQF@flex--yuzhao.bounces.google.com
-X-Stat-Signature: xt8apxhnez18ydabrirx1u5kimzk5obt
-X-HE-Tag: 1657144865-519413
+X-Stat-Signature: pwyqojsw14sqetwcoainu4e8z8rwatdx
+X-Rspamd-Queue-Id: 66748C0013
+Authentication-Results: imf22.hostedemail.com;
+	dkim=pass header.d=google.com header.s=20210112 header.b=EB8amhRS;
+	spf=pass (imf22.hostedemail.com: domain of
+ 3UvL5YgYKCD0xtygZnfnnfkd.bnlkhmtw-lljuZbj.nqf@flex--yuzhao.bounces.google.com
+ designates 209.85.219.202 as permitted sender)
+ smtp.mailfrom=3UvL5YgYKCD0xtygZnfnnfkd.bnlkhmtw-lljuZbj.nqf@flex--yuzhao.bounces.google.com;
+	dmarc=pass (policy=reject) header.from=google.com
+X-Rspamd-Server: rspam01
+X-HE-Tag: 1660547667-167461
 X-Bogosity: Ham, tests=bogofilter, spamicity=0.000000, version=1.2.4
 Sender: owner-linux-mm@kvack.org
 Precedence: bulk
@@ -235,10 +236,10 @@ Tested-by: Vaibhav Jain <vaibhav@linux.ibm.com>
  1 file changed, 46 insertions(+), 9 deletions(-)
 
 diff --git a/mm/vmscan.c b/mm/vmscan.c
-index 111111111..111111111 100644
+index d1dfc0a77b6f..ee51c752a3af 100644
 --- a/mm/vmscan.c
 +++ b/mm/vmscan.c
-@@ -129,6 +129,13 @@ struct scan_control {
+@@ -131,6 +131,13 @@ struct scan_control {
  	/* Always discard instead of demoting to lower tier memory */
  	unsigned int no_demotion:1;
  
@@ -252,7 +253,7 @@ index 111111111..111111111 100644
  	/* Allocation order */
  	s8 order;
  
-@@ -4372,6 +4379,22 @@ static void lru_gen_age_node(struct pglist_data *pgdat, struct scan_control *sc)
+@@ -4437,6 +4444,22 @@ static void lru_gen_age_node(struct pglist_data *pgdat, struct scan_control *sc)
  
  	VM_WARN_ON_ONCE(!current_is_kswapd());
  
@@ -275,7 +276,7 @@ index 111111111..111111111 100644
  	set_mm_walk(pgdat);
  
  	memcg = mem_cgroup_iter(NULL, NULL, NULL);
-@@ -4781,7 +4804,8 @@ static int isolate_folios(struct lruvec *lruvec, struct scan_control *sc, int sw
+@@ -4846,7 +4869,8 @@ static int isolate_folios(struct lruvec *lruvec, struct scan_control *sc, int sw
  	return scanned;
  }
  
@@ -285,7 +286,7 @@ index 111111111..111111111 100644
  {
  	int type;
  	int scanned;
-@@ -4844,14 +4868,16 @@ static int evict_folios(struct lruvec *lruvec, struct scan_control *sc, int swap
+@@ -4909,6 +4933,9 @@ static int evict_folios(struct lruvec *lruvec, struct scan_control *sc, int swap
  
  	sc->nr_reclaimed += reclaimed;
  
@@ -295,6 +296,9 @@ index 111111111..111111111 100644
  	return scanned;
  }
  
+@@ -4918,10 +4945,9 @@ static int evict_folios(struct lruvec *lruvec, struct scan_control *sc, int swap
+  *    reclaim.
+  */
  static unsigned long get_nr_to_scan(struct lruvec *lruvec, struct scan_control *sc,
 -				    bool can_swap, unsigned long reclaimed)
 +				    bool can_swap, unsigned long reclaimed, bool *need_aging)
@@ -304,7 +308,7 @@ index 111111111..111111111 100644
  	unsigned long nr_to_scan;
  	struct mem_cgroup *memcg = lruvec_memcg(lruvec);
  	DEFINE_MAX_SEQ(lruvec);
-@@ -4861,7 +4887,7 @@ static unsigned long get_nr_to_scan(struct lruvec *lruvec, struct scan_control *
+@@ -4936,7 +4962,7 @@ static unsigned long get_nr_to_scan(struct lruvec *lruvec, struct scan_control *
  	    (mem_cgroup_below_low(memcg) && !sc->memcg_low_reclaim))
  		return 0;
  
@@ -313,7 +317,7 @@ index 111111111..111111111 100644
  	if (!nr_to_scan)
  		return 0;
  
-@@ -4877,7 +4903,7 @@ static unsigned long get_nr_to_scan(struct lruvec *lruvec, struct scan_control *
+@@ -4952,7 +4978,7 @@ static unsigned long get_nr_to_scan(struct lruvec *lruvec, struct scan_control *
  	if (!nr_to_scan)
  		return 0;
  
@@ -322,7 +326,7 @@ index 111111111..111111111 100644
  		return nr_to_scan;
  
  	/* skip the aging path at the default priority */
-@@ -4897,6 +4923,8 @@ static unsigned long get_nr_to_scan(struct lruvec *lruvec, struct scan_control *
+@@ -4972,6 +4998,8 @@ static unsigned long get_nr_to_scan(struct lruvec *lruvec, struct scan_control *
  static void lru_gen_shrink_lruvec(struct lruvec *lruvec, struct scan_control *sc)
  {
  	struct blk_plug plug;
@@ -331,7 +335,7 @@ index 111111111..111111111 100644
  	unsigned long scanned = 0;
  	unsigned long reclaimed = sc->nr_reclaimed;
  
-@@ -4918,21 +4946,30 @@ static void lru_gen_shrink_lruvec(struct lruvec *lruvec, struct scan_control *sc
+@@ -4993,21 +5021,30 @@ static void lru_gen_shrink_lruvec(struct lruvec *lruvec, struct scan_control *sc
  		else
  			swappiness = 0;
  

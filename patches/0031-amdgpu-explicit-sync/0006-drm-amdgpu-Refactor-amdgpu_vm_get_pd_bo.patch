@@ -119,6 +119,15 @@ index 6b1da37c228003..852057cccc54fc 100644
  
  	r = ttm_eu_reserve_buffers(&ticket, &list, true, NULL);
  	if (r) {
+@@ -1210,7 +1210,7 @@ int amdgpu_mes_ctx_unmap_meta_data(struct amdgpu_device *adev,
+ 	tv.num_shared = 2;
+ 	list_add(&tv.head, &list);
+ 
+-	amdgpu_vm_get_pd_bo(vm, &list, &vm_pd);
++	amdgpu_vm_get_pd_bo(vm, &list, &vm_pd, DMA_RESV_USAGE_READ);
+ 
+ 	r = ttm_eu_reserve_buffers(&ticket, &list, false, &duplicates);
+ 	if (r) {
 diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_vm.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_vm.c
 index 1b5d2317b9879d..17cfe16a68ce04 100644
 --- a/drivers/gpu/drm/amd/amdgpu/amdgpu_vm.c

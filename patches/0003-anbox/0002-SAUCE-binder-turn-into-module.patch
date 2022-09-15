@@ -13,7 +13,6 @@ currently still using them:
 - security_binder_transfer_file()
 - can_nice()
 - __close_fd_get_file()
-- mmput_async()
 - task_work_add()
 - map_kernel_range_noflush()
 - get_vm_area()
@@ -22,9 +21,9 @@ currently still using them:
 - get_ipc_ns_exported()
 - show_init_ipc_ns()
 
-Signed-off-by: Christian Brauner <christian.brauner@ubuntu.com>
-[ saf: fix additional reference to init_ipc_ns from 5.0-rc6 ]
-Signed-off-by: Seth Forshee <seth.forshee@canonical.com>
+#Signed-off-by: Christian Brauner <christian.brauner@ubuntu.com>
+#[ saf: fix additional reference to init_ipc_ns from 5.0-rc6 ]
+#Signed-off-by: Seth Forshee <seth.forshee@canonical.com>
 ---
  drivers/android/Kconfig           |  6 +++---
  drivers/android/Makefile          | 10 +++++++---
@@ -249,18 +248,6 @@ index 1111111..1111111 100644
  
  static inline struct ipc_namespace *to_ipc_ns(struct ns_common *ns)
  {
-diff --git a/kernel/fork.c b/kernel/fork.c
-index 1111111..1111111 100644
---- a/kernel/fork.c
-+++ b/kernel/fork.c
-@@ -1230,6 +1230,7 @@ void mmput_async(struct mm_struct *mm)
- 		schedule_work(&mm->async_put_work);
- 	}
- }
-+EXPORT_SYMBOL(mmput_async);
- #endif
- 
- /**
 diff --git a/kernel/sched/core.c b/kernel/sched/core.c
 index 1111111..1111111 100644
 --- a/kernel/sched/core.c

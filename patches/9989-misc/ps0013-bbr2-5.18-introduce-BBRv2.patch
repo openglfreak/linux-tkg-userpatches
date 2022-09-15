@@ -268,19 +268,19 @@ index 111111111..111111111 100644
  obj-$(CONFIG_TCP_CONG_BIC) += tcp_bic.o
  obj-$(CONFIG_TCP_CONG_CDG) += tcp_cdg.o
  obj-$(CONFIG_TCP_CONG_CUBIC) += tcp_cubic.o
-diff --git a/net/ipv4/bpf_tcp_ca.c b/net/ipv4/bpf_tcp_ca.c
-index 111111111..111111111 100644
---- a/net/ipv4/bpf_tcp_ca.c
-+++ b/net/ipv4/bpf_tcp_ca.c
-@@ -21,7 +21,7 @@ static u32 optional_ops[] = {
- 	offsetof(struct tcp_congestion_ops, cwnd_event),
- 	offsetof(struct tcp_congestion_ops, in_ack_event),
- 	offsetof(struct tcp_congestion_ops, pkts_acked),
--	offsetof(struct tcp_congestion_ops, min_tso_segs),
-+	offsetof(struct tcp_congestion_ops, tso_segs),
- 	offsetof(struct tcp_congestion_ops, sndbuf_expand),
- 	offsetof(struct tcp_congestion_ops, cong_control),
- };
+#diff --git a/net/ipv4/bpf_tcp_ca.c b/net/ipv4/bpf_tcp_ca.c
+#index 111111111..111111111 100644
+#--- a/net/ipv4/bpf_tcp_ca.c
+#+++ b/net/ipv4/bpf_tcp_ca.c
+#@@ -21,7 +21,7 @@ static u32 optional_ops[] = {
+# 	offsetof(struct tcp_congestion_ops, cwnd_event),
+# 	offsetof(struct tcp_congestion_ops, in_ack_event),
+# 	offsetof(struct tcp_congestion_ops, pkts_acked),
+#-	offsetof(struct tcp_congestion_ops, min_tso_segs),
+#+	offsetof(struct tcp_congestion_ops, tso_segs),
+# 	offsetof(struct tcp_congestion_ops, sndbuf_expand),
+# 	offsetof(struct tcp_congestion_ops, cong_control),
+# };
 diff --git a/net/ipv4/tcp.c b/net/ipv4/tcp.c
 index 111111111..111111111 100644
 --- a/net/ipv4/tcp.c

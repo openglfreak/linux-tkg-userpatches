@@ -128,15 +128,6 @@ index 111111111..111111111 100644
  		kfree(ptr);
  		sched_core_put();
  	}
-@@ -75,7 +75,7 @@ static unsigned long sched_core_update_cookie(struct task_struct *p,
- 	old_cookie = p->core_cookie;
- 	p->core_cookie = cookie;
- 
--	if (enqueued)
-+	if (task_on_rq_queued(p))
- 		sched_core_enqueue(rq, p);
- 
- 	/*
 diff --git a/kernel/sched/fair.c b/kernel/sched/fair.c
 index 111111111..111111111 100644
 --- a/kernel/sched/fair.c

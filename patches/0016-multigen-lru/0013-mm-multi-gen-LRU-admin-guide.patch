@@ -1,76 +1,77 @@
-From patchwork Wed Jul  6 22:00:22 2022
+From patchwork Mon Aug 15 07:13:32 2022
 Content-Type: text/plain; charset="utf-8"
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 X-Patchwork-Submitter: Yu Zhao <yuzhao@google.com>
-X-Patchwork-Id: 12908711
+X-Patchwork-Id: 12943200
 Return-Path: <owner-linux-mm@kvack.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from kanga.kvack.org (kanga.kvack.org [205.233.56.17])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6414FC43334
-	for <linux-mm@archiver.kernel.org>; Wed,  6 Jul 2022 22:01:29 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 86096C00140
+	for <linux-mm@archiver.kernel.org>; Mon, 15 Aug 2022 07:14:39 +0000 (UTC)
 Received: by kanga.kvack.org (Postfix)
-	id 39E278E000A; Wed,  6 Jul 2022 18:01:13 -0400 (EDT)
+	id 2334C6B0088; Mon, 15 Aug 2022 03:14:34 -0400 (EDT)
 Received: by kanga.kvack.org (Postfix, from userid 40)
-	id 34DB98E0001; Wed,  6 Jul 2022 18:01:13 -0400 (EDT)
+	id 1957A6B0089; Mon, 15 Aug 2022 03:14:34 -0400 (EDT)
 X-Delivered-To: int-list-linux-mm@kvack.org
 Received: by kanga.kvack.org (Postfix, from userid 63042)
-	id 1A1728E000A; Wed,  6 Jul 2022 18:01:13 -0400 (EDT)
+	id EAD598D0001; Mon, 15 Aug 2022 03:14:33 -0400 (EDT)
 X-Delivered-To: linux-mm@kvack.org
-Received: from relay.hostedemail.com (smtprelay0017.hostedemail.com
- [216.40.44.17])
-	by kanga.kvack.org (Postfix) with ESMTP id 047FA8E0001
-	for <linux-mm@kvack.org>; Wed,  6 Jul 2022 18:01:13 -0400 (EDT)
-Received: from smtpin07.hostedemail.com (a10.router.float.18 [10.200.18.1])
-	by unirelay06.hostedemail.com (Postfix) with ESMTP id CA9C334906
-	for <linux-mm@kvack.org>; Wed,  6 Jul 2022 22:01:12 +0000 (UTC)
-X-FDA: 79658046384.07.4AE281A
-Received: from mail-yb1-f201.google.com (mail-yb1-f201.google.com
- [209.85.219.201])
-	by imf19.hostedemail.com (Postfix) with ESMTP id E1D811A004A
-	for <linux-mm@kvack.org>; Wed,  6 Jul 2022 22:01:11 +0000 (UTC)
-Received: by mail-yb1-f201.google.com with SMTP id
- j11-20020a05690212cb00b006454988d225so12639320ybu.10
-        for <linux-mm@kvack.org>; Wed, 06 Jul 2022 15:01:11 -0700 (PDT)
+Received: from relay.hostedemail.com (smtprelay0016.hostedemail.com
+ [216.40.44.16])
+	by kanga.kvack.org (Postfix) with ESMTP id D6A446B0088
+	for <linux-mm@kvack.org>; Mon, 15 Aug 2022 03:14:33 -0400 (EDT)
+Received: from smtpin25.hostedemail.com (a10.router.float.18 [10.200.18.1])
+	by unirelay03.hostedemail.com (Postfix) with ESMTP id B3DCAA051F
+	for <linux-mm@kvack.org>; Mon, 15 Aug 2022 07:14:33 +0000 (UTC)
+X-FDA: 79800964026.25.8903FAC
+Received: from mail-yw1-f201.google.com (mail-yw1-f201.google.com
+ [209.85.128.201])
+	by imf31.hostedemail.com (Postfix) with ESMTP id 4A16C201AF
+	for <linux-mm@kvack.org>; Mon, 15 Aug 2022 07:14:33 +0000 (UTC)
+Received: by mail-yw1-f201.google.com with SMTP id
+ 00721157ae682-3328a211611so1016427b3.5
+        for <linux-mm@kvack.org>; Mon, 15 Aug 2022 00:14:33 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20210112;
-        h=date:in-reply-to:message-id:mime-version:references:subject:from:to
-         :cc:content-transfer-encoding;
-        bh=gpspQZzCiCtLDF1mE2Rbzp3OUWg7vlq70C4xLE3ya+E=;
-        b=KmRh3W6zCTnYhuu2uLwH/71AGZzl5TVUrtsNnUP5zXTmGsYrVbcqdtCu+MA/r0Ndp0
-         Swx6K5/Y1yzZuona+ojX9pyfPH0vSgmsnPUuGuK8IgKoxke8pbVIOMVO1oHB4MFfbJr9
-         MZQ2DHsaZhnv+oABy231/ZNYVnut1uI8HXMoZE64GkKDaX0oTm6VD5IWp6Pjb9e4CCS2
-         4l6LRlV0GkUZbtfNu7oRMgYKOcOBXuCtbtOCopiW839uMoofW0liroJ2wElyPDiAsF2j
-         ZEKcyiLmzwxANf1QRl8D0H0t207nTseUwQuoJ0fGq2geu1GyW7/GzRuxYm66v/+UUfVJ
-         Ti/g==
+        h=content-transfer-encoding:cc:to:from:subject:references
+         :mime-version:message-id:in-reply-to:date:from:to:cc;
+        bh=ifOfojcufHPggK6PzW/ZmDk8V3gX0fRZ648oAiWvUiA=;
+        b=c59OaabIoXL9UllET9+yHjK4QWTaAVf+Y+94LiY0cZghkWrG57gjB2UsUv7kIcoZqC
+         XrxDIYeH4E+SFchOWfjRRltuk94kXs0NPlMrjadt8Sc2zLqbwbuLVYLMIHHv08BW7Gsq
+         hGWPYpfBveWyfz+U70H2H2ETnI1rFtDBZFZ6IBJP2WwIEmmT9HnsCC4FAfOd4cbVkVaq
+         g0Om3KMCyeXiH0qsBJJm51khuElGnMvBksbLGGzMr7gWefJoruSvCxrDPgn8m/Dyxmcn
+         c70Lw36CW2GHahqbQQvplsWH7m/3mmxoGCcA7tPTtfTYhzlbCihOuIv+Z1JOjGkAS9hK
+         XxQg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
-        h=x-gm-message-state:date:in-reply-to:message-id:mime-version
-         :references:subject:from:to:cc:content-transfer-encoding;
-        bh=gpspQZzCiCtLDF1mE2Rbzp3OUWg7vlq70C4xLE3ya+E=;
-        b=Ct8NkvISAcd2F1onRi9j8wNBQ3yVS4sMkwQThZBmSai4nt0pCzUW6MSInM6la2RQ+6
-         Iyk/Q6V/4/M1AEzJ1CIyUOjtskptWB7g9JCLcYDV67l3e3cym3CfKO6faANsjcNo61aE
-         cGyF+8I3UwoMP2XkhiX8e+sh+JyAVS+7v6ah2jAK3rMcN9Qy3pRUpTzse16anYIvPXmH
-         D/n6XDiuVtka4xdvtVrXH1Ovj7jTQyu5zNSeDpYUHIIuY5HyyWlwP2GqOXO5+3ztetSe
-         lqHq/pwTeg5OaKzyo1/S4u5j63+cCDsRbst48LWqqY7iSJl7Jqjh9IcuciM5gwWyKVQq
-         exXg==
-X-Gm-Message-State: AJIora8Djp7T6fvZwj7nFJ1nTHsOTMleXrE/THizuhZy3oXIgXemxG6T
-	WRLpIC0iL2d+my0UEmLvbYJe1kwX4xc=
+        h=content-transfer-encoding:cc:to:from:subject:references
+         :mime-version:message-id:in-reply-to:date:x-gm-message-state:from:to
+         :cc;
+        bh=ifOfojcufHPggK6PzW/ZmDk8V3gX0fRZ648oAiWvUiA=;
+        b=X6bzUF+ZSfCo4u3uKaqVXqY1nh0LWeNCoJQjFgop3Efc/IHqnEZ2wu0xnWB2wOCMVu
+         m1Ynv3UaOsoT0mlzk8ifiDGYx+MCEJGtOcN91j2p23idVQlZiKxScSmlpIhQzJgaQgIo
+         i9RzD1YvZkbVY4CmcMEtCz1y4qituekiteOrH7/+Mq4VCgmTuHCeqcg/3eZAUsH7x8pE
+         MxNPRjfLqMwm/fGvE16kFKOt5a9/DyZII8bOlm9hYTrBLzNWNNBbCQuSo0js35OuO7XP
+         d1nQVDUeJdmWD8hhV8lSdfbTz1DGFz3Od7waWBg+FVGmPWTWk+kCqxtK7kxFZ+FKrUeP
+         oITQ==
+X-Gm-Message-State: ACgBeo3oww1DVmbO27grJa6m28XVg7O1oKO09+XFfuWE2zPKFcPPelbU
+	EdeolvgeO+BRmY8ar3fH6KfKJIQ2PcU=
 X-Google-Smtp-Source: 
- AGRyM1tcS0bhkovBqaAMGcBTFG0LXet+IyIY3UhCyBJaxouYWPrdgSATtWZUnD1044Cxo6jW3UsFPLIHGBk=
+ AA6agR65uZieoY64YyFiqnDGSULfWd5cVZFd0eTGWgiw0y32PNelp3oFvvJBI38s6zkyVzTABWQCjyFY0pw=
 X-Received: from yuzhao.bld.corp.google.com
- ([2620:15c:183:200:b89c:e10a:466e:cf7d])
- (user=yuzhao job=sendgmr) by 2002:a25:73d1:0:b0:66e:aee4:feb3 with SMTP id
- o200-20020a2573d1000000b0066eaee4feb3mr1925521ybc.452.1657144871215; Wed, 06
- Jul 2022 15:01:11 -0700 (PDT)
-Date: Wed,  6 Jul 2022 16:00:22 -0600
-In-Reply-To: <20220706220022.968789-1-yuzhao@google.com>
-Message-Id: <20220706220022.968789-14-yuzhao@google.com>
+ ([2620:15c:183:200:d91:5887:ac93:ddf0])
+ (user=yuzhao job=sendgmr) by 2002:a81:1615:0:b0:326:8d61:6259 with SMTP id
+ 21-20020a811615000000b003268d616259mr12413835yww.164.1660547672584; Mon, 15
+ Aug 2022 00:14:32 -0700 (PDT)
+Date: Mon, 15 Aug 2022 01:13:32 -0600
+In-Reply-To: <20220815071332.627393-1-yuzhao@google.com>
+Message-Id: <20220815071332.627393-14-yuzhao@google.com>
 Mime-Version: 1.0
-References: <20220706220022.968789-1-yuzhao@google.com>
-X-Mailer: git-send-email 2.37.0.rc0.161.g10f37bed90-goog
-Subject: [PATCH v13 13/14] mm: multi-gen LRU: admin guide
+References: <20220815071332.627393-1-yuzhao@google.com>
+X-Mailer: git-send-email 2.37.1.595.g718a3a8f04-goog
+Subject: [PATCH v14 13/14] mm: multi-gen LRU: admin guide
 From: Yu Zhao <yuzhao@google.com>
 To: Andrew Morton <akpm@linux-foundation.org>
 Cc: Andi Kleen <ak@linux.intel.com>,
@@ -98,43 +99,43 @@ Cc: Andi Kleen <ak@linux.intel.com>,
  Konstantin Kharlamov <Hi-Angel@yandex.ru>,
   Shuang Zhai <szhai2@cs.rochester.edu>, Sofia Trinh <sofia.trinh@edi.works>,
   Vaibhav Jain <vaibhav@linux.ibm.com>
-ARC-Seal: i=1; s=arc-20220608; d=hostedemail.com; t=1657144872; a=rsa-sha256;
+ARC-Seal: i=1; s=arc-20220608; d=hostedemail.com; t=1660547673; a=rsa-sha256;
 	cv=none;
-	b=JsWQytQvs1ZknqPoqD3qo1TJldLBGiKSTga/ejO8CyQYViqdXml7nvJD7fQyRxXf/sYCeO
-	o91ZwxjqHFV+Qk45x3ZWpVnbVz5s7Ub1LlWxdnj2ACxVxDi2i4I70KlZDYV1V7+0DLXiwM
-	Cf5UnSo0xArYOHGQTNNAa/beRpM+U2U=
+	b=M+EGg5WbYF0xscEbiMzQleZFvkVHhMxuvxohvyVqCB+2NGa0IfxoR4j+69P2fmQ0qclfb+
+	2tckz/zt0J+M5VD9gh61/6n7zbr2nbqRO9+xdoQZ1XOm+ysXWUT8+b/fwBf7/SdFgKPJfe
+	IBhgagpWgA9tdbZjCOYy2dIpmkINFxw=
 ARC-Authentication-Results: i=1;
-	imf19.hostedemail.com;
-	dkim=pass header.d=google.com header.s=20210112 header.b=KmRh3W6z;
-	dmarc=pass (policy=reject) header.from=google.com;
-	spf=pass (imf19.hostedemail.com: domain of
- 3JwbGYgYKCGgeafNGUMUUMRK.IUSROTad-SSQbGIQ.UXM@flex--yuzhao.bounces.google.com
- designates 209.85.219.201 as permitted sender)
- smtp.mailfrom=3JwbGYgYKCGgeafNGUMUUMRK.IUSROTad-SSQbGIQ.UXM@flex--yuzhao.bounces.google.com
+	imf31.hostedemail.com;
+	dkim=pass header.d=google.com header.s=20210112 header.b=c59OaabI;
+	spf=pass (imf31.hostedemail.com: domain of
+ 3WPL5YgYKCEM3z4mftlttlqj.htrqnsz2-rrp0fhp.twl@flex--yuzhao.bounces.google.com
+ designates 209.85.128.201 as permitted sender)
+ smtp.mailfrom=3WPL5YgYKCEM3z4mftlttlqj.htrqnsz2-rrp0fhp.twl@flex--yuzhao.bounces.google.com;
+	dmarc=pass (policy=reject) header.from=google.com
 ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed;
  d=hostedemail.com;
-	s=arc-20220608; t=1657144872;
+	s=arc-20220608; t=1660547673;
 	h=from:from:sender:reply-to:subject:subject:date:date:
 	 message-id:message-id:to:to:cc:cc:mime-version:mime-version:
 	 content-type:content-type:
 	 content-transfer-encoding:content-transfer-encoding:
 	 in-reply-to:in-reply-to:references:references:dkim-signature;
-	bh=gpspQZzCiCtLDF1mE2Rbzp3OUWg7vlq70C4xLE3ya+E=;
-	b=7SORwSc3XuCDIhY4Nnt3155Fml8B5PM7q+cxyDoyzRH9f30a8JT7kTOzO43GZtqu1vi0gx
-	ZvOQWsmLsXdrJ4He9F7TCEfWwHvTKJw2xq5RY+ztHvYdkw0u4ntOGqKfhRRpSNYMieV4f5
-	IIb7Tz/BoxO7bW/vk+Bjj4szoFKZSXU=
-X-Rspamd-Server: rspam04
+	bh=ifOfojcufHPggK6PzW/ZmDk8V3gX0fRZ648oAiWvUiA=;
+	b=TaPLyfEu/1gr0NpZQJGcapsbQI0uDWZp8WYIDb1wV0QWpgSeYRvyEo7rLegUosWxIoq1Zd
+	Gw9YmQRXnN3r9VWp7s+kSOIxh3/1ZTcUIzjbrRMEFDLmIC0F1aMny0EdHK+E4X+46uDNPd
+	b8s75B/bEk0qdyOdJJLUCLyU7sN+gdc=
+X-Rspamd-Queue-Id: 4A16C201AF
+Authentication-Results: imf31.hostedemail.com;
+	dkim=pass header.d=google.com header.s=20210112 header.b=c59OaabI;
+	spf=pass (imf31.hostedemail.com: domain of
+ 3WPL5YgYKCEM3z4mftlttlqj.htrqnsz2-rrp0fhp.twl@flex--yuzhao.bounces.google.com
+ designates 209.85.128.201 as permitted sender)
+ smtp.mailfrom=3WPL5YgYKCEM3z4mftlttlqj.htrqnsz2-rrp0fhp.twl@flex--yuzhao.bounces.google.com;
+	dmarc=pass (policy=reject) header.from=google.com
 X-Rspam-User: 
-Authentication-Results: imf19.hostedemail.com;
-	dkim=pass header.d=google.com header.s=20210112 header.b=KmRh3W6z;
-	dmarc=pass (policy=reject) header.from=google.com;
-	spf=pass (imf19.hostedemail.com: domain of
- 3JwbGYgYKCGgeafNGUMUUMRK.IUSROTad-SSQbGIQ.UXM@flex--yuzhao.bounces.google.com
- designates 209.85.219.201 as permitted sender)
- smtp.mailfrom=3JwbGYgYKCGgeafNGUMUUMRK.IUSROTad-SSQbGIQ.UXM@flex--yuzhao.bounces.google.com
-X-Stat-Signature: a3k84bgjbfr9z8g5wse9kf3mp6fodfft
-X-Rspamd-Queue-Id: E1D811A004A
-X-HE-Tag: 1657144871-897432
+X-Rspamd-Server: rspam12
+X-Stat-Signature: zs8udrhsk8h74xwg9hgc4wzm1zwyq8dc
+X-HE-Tag: 1660547673-114455
 X-Bogosity: Ham, tests=bogofilter, spamicity=0.000000, version=1.2.4
 Sender: owner-linux-mm@kvack.org
 Precedence: bulk
@@ -156,6 +157,8 @@ Tested-by: Konstantin Kharlamov <Hi-Angel@yandex.ru>
 Tested-by: Shuang Zhai <szhai2@cs.rochester.edu>
 Tested-by: Sofia Trinh <sofia.trinh@edi.works>
 Tested-by: Vaibhav Jain <vaibhav@linux.ibm.com>
+Reviewed-by: Bagas Sanjaya <bagasdotme@gmail.com>
+Acked-by: Mike Rapoport <rppt@linux.ibm.com>
 ---
  Documentation/admin-guide/mm/index.rst        |   1 +
  Documentation/admin-guide/mm/multigen_lru.rst | 156 ++++++++++++++++++
@@ -165,7 +168,7 @@ Tested-by: Vaibhav Jain <vaibhav@linux.ibm.com>
  create mode 100644 Documentation/admin-guide/mm/multigen_lru.rst
 
 diff --git a/Documentation/admin-guide/mm/index.rst b/Documentation/admin-guide/mm/index.rst
-index 111111111..111111111 100644
+index 1bd11118dfb1..d1064e0ba34a 100644
 --- a/Documentation/admin-guide/mm/index.rst
 +++ b/Documentation/admin-guide/mm/index.rst
 @@ -32,6 +32,7 @@ the Linux memory management.
@@ -178,7 +181,7 @@ index 111111111..111111111 100644
     numaperf
 diff --git a/Documentation/admin-guide/mm/multigen_lru.rst b/Documentation/admin-guide/mm/multigen_lru.rst
 new file mode 100644
-index 000000000..111111111
+index 000000000000..6355f2b5019d
 --- /dev/null
 +++ b/Documentation/admin-guide/mm/multigen_lru.rst
 @@ -0,0 +1,156 @@
@@ -339,10 +342,10 @@ index 000000000..111111111
 +from the working set estimation step. This less forceful approach
 +limits the impacts on the existing jobs.
 diff --git a/mm/Kconfig b/mm/Kconfig
-index 111111111..111111111 100644
+index 6c86849c4db9..96cd3ae25c6f 100644
 --- a/mm/Kconfig
 +++ b/mm/Kconfig
-@@ -1137,7 +1137,8 @@ config LRU_GEN
+@@ -1131,7 +1131,8 @@ config LRU_GEN
  	# make sure folio->flags has enough spare bits
  	depends on 64BIT || !SPARSEMEM || SPARSEMEM_VMEMMAP
  	help
@@ -353,10 +356,10 @@ index 111111111..111111111 100644
  config LRU_GEN_ENABLED
  	bool "Enable by default"
 diff --git a/mm/vmscan.c b/mm/vmscan.c
-index 111111111..111111111 100644
+index 509989fb39ef..f693720047db 100644
 --- a/mm/vmscan.c
 +++ b/mm/vmscan.c
-@@ -5209,6 +5209,7 @@ static ssize_t show_min_ttl(struct kobject *kobj, struct kobj_attribute *attr, c
+@@ -5288,6 +5288,7 @@ static ssize_t show_min_ttl(struct kobject *kobj, struct kobj_attribute *attr, c
  	return sprintf(buf, "%u\n", jiffies_to_msecs(READ_ONCE(lru_gen_min_ttl)));
  }
  
@@ -364,7 +367,7 @@ index 111111111..111111111 100644
  static ssize_t store_min_ttl(struct kobject *kobj, struct kobj_attribute *attr,
  			     const char *buf, size_t len)
  {
-@@ -5242,6 +5243,7 @@ static ssize_t show_enabled(struct kobject *kobj, struct kobj_attribute *attr, c
+@@ -5321,6 +5322,7 @@ static ssize_t show_enabled(struct kobject *kobj, struct kobj_attribute *attr, c
  	return snprintf(buf, PAGE_SIZE, "0x%04x\n", caps);
  }
  
@@ -372,7 +375,7 @@ index 111111111..111111111 100644
  static ssize_t store_enabled(struct kobject *kobj, struct kobj_attribute *attr,
  			     const char *buf, size_t len)
  {
-@@ -5389,6 +5391,7 @@ static void lru_gen_seq_show_full(struct seq_file *m, struct lruvec *lruvec,
+@@ -5468,6 +5470,7 @@ static void lru_gen_seq_show_full(struct seq_file *m, struct lruvec *lruvec,
  	seq_putc(m, '\n');
  }
  
@@ -380,7 +383,7 @@ index 111111111..111111111 100644
  static int lru_gen_seq_show(struct seq_file *m, void *v)
  {
  	unsigned long seq;
-@@ -5547,6 +5550,7 @@ static int run_cmd(char cmd, int memcg_id, int nid, unsigned long seq,
+@@ -5626,6 +5629,7 @@ static int run_cmd(char cmd, int memcg_id, int nid, unsigned long seq,
  	return err;
  }
  

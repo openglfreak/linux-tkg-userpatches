@@ -16,14 +16,14 @@ index 8890300766a5b9..6d92e8846b217c 100644
 --- a/drivers/gpu/drm/amd/amdgpu/amdgpu_drv.c
 +++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_drv.c
 @@ -101,9 +101,10 @@
-  * - 3.45.0 - Add context ioctl stable pstate interface
   * - 3.46.0 - To enable hot plug amdgpu tests in libdrm
   * * 3.47.0 - Add AMDGPU_GEM_CREATE_DISCARDABLE and AMDGPU_VM_NOALLOC flags
-+ * - 3.48.0 - Add AMDGPU_CTX_OP_SET_IMPLICIT_SYNC context operation.
+  * - 3.48.0 - Add IP discovery version info to HW INFO
++ * - 3.49.0 - Add AMDGPU_CTX_OP_SET_IMPLICIT_SYNC context operation.
   */
  #define KMS_DRIVER_MAJOR	3
--#define KMS_DRIVER_MINOR	47
-+#define KMS_DRIVER_MINOR	48
+-#define KMS_DRIVER_MINOR	48
++#define KMS_DRIVER_MINOR	49
  #define KMS_DRIVER_PATCHLEVEL	0
  
  int amdgpu_vram_limit;
