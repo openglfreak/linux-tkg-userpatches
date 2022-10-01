@@ -1,0 +1,200 @@
+From patchwork Tue Sep 13 19:25:37 2022
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Jiebin Sun <jiebin.sun@intel.com>
+X-Patchwork-Id: 12974698
+Return-Path: <owner-linux-mm@kvack.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from kanga.kvack.org (kanga.kvack.org [205.233.56.17])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id D867DC6FA82
+	for <linux-mm@archiver.kernel.org>; Tue, 13 Sep 2022 11:06:58 +0000 (UTC)
+Received: by kanga.kvack.org (Postfix)
+	id 5176C6B0073; Tue, 13 Sep 2022 07:06:58 -0400 (EDT)
+Received: by kanga.kvack.org (Postfix, from userid 40)
+	id 4A04B6B0074; Tue, 13 Sep 2022 07:06:58 -0400 (EDT)
+X-Delivered-To: int-list-linux-mm@kvack.org
+Received: by kanga.kvack.org (Postfix, from userid 63042)
+	id 319AB8D0001; Tue, 13 Sep 2022 07:06:58 -0400 (EDT)
+X-Delivered-To: linux-mm@kvack.org
+Received: from relay.hostedemail.com (smtprelay0011.hostedemail.com
+ [216.40.44.11])
+	by kanga.kvack.org (Postfix) with ESMTP id 21E476B0073
+	for <linux-mm@kvack.org>; Tue, 13 Sep 2022 07:06:58 -0400 (EDT)
+Received: from smtpin24.hostedemail.com (a10.router.float.18 [10.200.18.1])
+	by unirelay04.hostedemail.com (Postfix) with ESMTP id ED65E1A02BD
+	for <linux-mm@kvack.org>; Tue, 13 Sep 2022 11:06:57 +0000 (UTC)
+X-FDA: 79906784874.24.EBA825D
+Received: from mga04.intel.com (mga04.intel.com [192.55.52.120])
+	by imf26.hostedemail.com (Postfix) with ESMTP id 4E51C1400C8
+	for <linux-mm@kvack.org>; Tue, 13 Sep 2022 11:06:56 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
+  t=1663067216; x=1694603216;
+  h=from:to:cc:subject:date:message-id:in-reply-to:
+   references:mime-version:content-transfer-encoding;
+  bh=MiEDfww/B/2De+3MVM2YwC08RnmErrMIpkB17KjlA6Y=;
+  b=Y5yjog+L8vTo3owYBw8Eob7QTbPIHQpdBw6ao1ZMOL0pybaL359rl5mR
+   FRFPH1FHrMwQFQ9lUYZIixboV5U0LolUDo/GL7XqnHfBh4ujsOHcylsRb
+   qAMekPV3Qp8ADJ2tSnvaYcoc1YmxSFsMgFdrq1+D7Rg9B7H6IShq1SPoK
+   r72WTmKI6LBapT3us6qbTzkaGj5UWcf3SaPIfOjeQkQ3qlDkhFR6PxJvH
+   2E/dYB/PodtVRMFkEPHCtgQdQHznNvTt3XJTjikRuhoTzmn/Xhdd3cQQW
+   oOfYqOPyHC/Jx6C3vSBnNdvaM3M/03RopBajF0kcY1/NkfU4ncPoHuzFq
+   g==;
+X-IronPort-AV: E=McAfee;i="6500,9779,10468"; a="296843909"
+X-IronPort-AV: E=Sophos;i="5.93,312,1654585200";
+   d="scan'208";a="296843909"
+Received: from fmsmga008.fm.intel.com ([10.253.24.58])
+  by fmsmga104.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384;
+ 13 Sep 2022 04:06:54 -0700
+X-ExtLoop1: 1
+X-IronPort-AV: E=Sophos;i="5.93,312,1654585200";
+   d="scan'208";a="678522192"
+Received: from linux-pnp-server-13.sh.intel.com ([10.239.176.176])
+  by fmsmga008.fm.intel.com with ESMTP; 13 Sep 2022 04:06:50 -0700
+From: Jiebin Sun <jiebin.sun@intel.com>
+To: akpm@linux-foundation.org,
+	vasily.averin@linux.dev,
+	shakeelb@google.com,
+	dennis@kernel.org,
+	tj@kernel.org,
+	cl@linux.com,
+	ebiederm@xmission.com,
+	legion@kernel.org,
+	manfred@colorfullife.com,
+	alexander.mikhalitsyn@virtuozzo.com,
+	linux-mm@kvack.org,
+	linux-kernel@vger.kernel.org
+Cc: tim.c.chen@intel.com,
+	feng.tang@intel.com,
+	ying.huang@intel.com,
+	tianyou.li@intel.com,
+	wangyang.guo@intel.com,
+	jiebin.sun@intel.com,
+	Tim Chen <tim.c.chen@linux.intel.com>,
+	kernel test robot <lkp@intel.com>
+Subject: [PATCH v6 1/2] percpu: Add percpu_counter_add_local and
+ percpu_counter_sub_local
+Date: Wed, 14 Sep 2022 03:25:37 +0800
+Message-Id: <20220913192538.3023708-2-jiebin.sun@intel.com>
+X-Mailer: git-send-email 2.31.1
+In-Reply-To: <20220913192538.3023708-1-jiebin.sun@intel.com>
+References: <20220902152243.479592-1-jiebin.sun@intel.com>
+ <20220913192538.3023708-1-jiebin.sun@intel.com>
+MIME-Version: 1.0
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=hostedemail.com;
+	s=arc-20220608; t=1663067216;
+	h=from:from:sender:reply-to:subject:subject:date:date:
+	 message-id:message-id:to:to:cc:cc:mime-version:mime-version:
+	 content-type:content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references:dkim-signature;
+	bh=Z5dIkaQuefJf6ED2dzrzzFgCdj9BPqLoPEiN+aDwOpM=;
+	b=MtgydiHhwKACqUAYnXbbuDFHZZ0xJRDpPzjofnndX0NzHJyxXuExj55cE/v+8z89uJ+VUW
+	IdtG8Go+XYpUAo/SHfiX/P7xlsiDwdYt7Tv0vIo/KJ7wTZnNbfYMDKYzpXHP8DIqP4DbHQ
+	iHn/9VBzxBjQ8MUNy1acwULoKqlZcuY=
+ARC-Authentication-Results: i=1;
+	imf26.hostedemail.com;
+	dkim=none ("invalid DKIM record") header.d=intel.com header.s=Intel
+ header.b=Y5yjog+L;
+	spf=pass (imf26.hostedemail.com: domain of jiebin.sun@intel.com designates
+ 192.55.52.120 as permitted sender) smtp.mailfrom=jiebin.sun@intel.com;
+	dmarc=pass (policy=none) header.from=intel.com
+ARC-Seal: i=1; s=arc-20220608; d=hostedemail.com; t=1663067216; a=rsa-sha256;
+	cv=none;
+	b=GKyIUdy3PeSe6DdU8IbmZI6/0alUWEA7wcBGQuqzHvnt2b1VTYZ9nQmBTLvUxAMQd1PN5o
+	LNsUBWOjN9myYdMtcFbaGMEvPIkDLIgKArnkgcb7YtuIiz+UlPghV4q/cZU0LT0ie501Zz
+	NWdgAhvlv65TXICCbYBHzMRI39sies8=
+X-Stat-Signature: afznywfqqi8q4fo61rys9o9tnegzst8m
+X-Rspamd-Queue-Id: 4E51C1400C8
+Authentication-Results: imf26.hostedemail.com;
+	dkim=none ("invalid DKIM record") header.d=intel.com header.s=Intel
+ header.b=Y5yjog+L;
+	spf=pass (imf26.hostedemail.com: domain of jiebin.sun@intel.com designates
+ 192.55.52.120 as permitted sender) smtp.mailfrom=jiebin.sun@intel.com;
+	dmarc=pass (policy=none) header.from=intel.com
+X-Rspam-User: 
+X-Rspamd-Server: rspam05
+X-HE-Tag: 1663067216-624473
+X-Bogosity: Ham, tests=bogofilter, spamicity=0.000000, version=1.2.4
+Sender: owner-linux-mm@kvack.org
+Precedence: bulk
+X-Loop: owner-majordomo@kvack.org
+List-ID: <linux-mm.kvack.org>
+
+The batch size in percpu_counter_add_batch should be very large in
+heavy writing and rare reading case. Add the "_local" version, and
+mostly it will do local adding, reduce the global updating and
+mitigate lock contention in writing.
+
+Signed-off-by: Jiebin Sun <jiebin.sun@intel.com>
+Reviewed-by: Tim Chen <tim.c.chen@linux.intel.com>
+Reported-by: kernel test robot <lkp@intel.com>
+---
+ include/linux/percpu_counter.h | 32 ++++++++++++++++++++++++++++++++
+ 1 file changed, 32 insertions(+)
+
+diff --git a/include/linux/percpu_counter.h b/include/linux/percpu_counter.h
+index 01861eebed79..8ed5fba6d156 100644
+--- a/include/linux/percpu_counter.h
++++ b/include/linux/percpu_counter.h
+@@ -15,6 +15,9 @@
+ #include <linux/types.h>
+ #include <linux/gfp.h>
+ 
++/* percpu_counter batch for local add or sub */
++#define PERCPU_COUNTER_LOCAL_BATCH	INT_MAX
++
+ #ifdef CONFIG_SMP
+ 
+ struct percpu_counter {
+@@ -56,6 +59,22 @@ static inline void percpu_counter_add(struct percpu_counter *fbc, s64 amount)
+ 	percpu_counter_add_batch(fbc, amount, percpu_counter_batch);
+ }
+ 
++/*
++ * With percpu_counter_add_local() and percpu_counter_sub_local(), counts
++ * are accumulated in local per cpu counter and not in fbc->count until
++ * local count overflows PERCPU_COUNTER_LOCAL_BATCH. This makes counter
++ * write efficient.
++ * But percpu_counter_sum(), instead of percpu_counter_read(), needs to be
++ * used to add up the counts from each CPU to account for all the local
++ * counts. So percpu_counter_add_local() and percpu_counter_sub_local()
++ * should be used when a counter is updated frequently and read rarely.
++ */
++static inline void
++percpu_counter_add_local(struct percpu_counter *fbc, s64 amount)
++{
++	percpu_counter_add_batch(fbc, amount, PERCPU_COUNTER_LOCAL_BATCH);
++}
++
+ static inline s64 percpu_counter_sum_positive(struct percpu_counter *fbc)
+ {
+ 	s64 ret = __percpu_counter_sum(fbc);
+@@ -138,6 +157,13 @@ percpu_counter_add(struct percpu_counter *fbc, s64 amount)
+ 	preempt_enable();
+ }
+ 
++/* non-SMP percpu_counter_add_local is the same with percpu_counter_add */
++static inline void
++percpu_counter_add_local(struct percpu_counter *fbc, s64 amount)
++{
++	percpu_counter_add(fbc, amount);
++}
++
+ static inline void
+ percpu_counter_add_batch(struct percpu_counter *fbc, s64 amount, s32 batch)
+ {
+@@ -193,4 +219,10 @@ static inline void percpu_counter_sub(struct percpu_counter *fbc, s64 amount)
+ 	percpu_counter_add(fbc, -amount);
+ }
+ 
++static inline void
++percpu_counter_sub_local(struct percpu_counter *fbc, s64 amount)
++{
++	percpu_counter_add_local(fbc, -amount);
++}
++
+ #endif /* _LINUX_PERCPU_COUNTER_H */
+

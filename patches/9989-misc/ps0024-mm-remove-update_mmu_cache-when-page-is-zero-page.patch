@@ -1,0 +1,138 @@
+From patchwork Fri Sep  9 07:38:15 2022
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: haoxin <xhao@linux.alibaba.com>
+X-Patchwork-Id: 12971159
+Return-Path: <owner-linux-mm@kvack.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from kanga.kvack.org (kanga.kvack.org [205.233.56.17])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 8A67CECAAA1
+	for <linux-mm@archiver.kernel.org>; Fri,  9 Sep 2022 07:38:26 +0000 (UTC)
+Received: by kanga.kvack.org (Postfix)
+	id 1D6F08D0003; Fri,  9 Sep 2022 03:38:26 -0400 (EDT)
+Received: by kanga.kvack.org (Postfix, from userid 40)
+	id 160A08D0001; Fri,  9 Sep 2022 03:38:26 -0400 (EDT)
+X-Delivered-To: int-list-linux-mm@kvack.org
+Received: by kanga.kvack.org (Postfix, from userid 63042)
+	id 028DB8D0003; Fri,  9 Sep 2022 03:38:25 -0400 (EDT)
+X-Delivered-To: linux-mm@kvack.org
+Received: from relay.hostedemail.com (smtprelay0016.hostedemail.com
+ [216.40.44.16])
+	by kanga.kvack.org (Postfix) with ESMTP id E5CB38D0001
+	for <linux-mm@kvack.org>; Fri,  9 Sep 2022 03:38:25 -0400 (EDT)
+Received: from smtpin11.hostedemail.com (a10.router.float.18 [10.200.18.1])
+	by unirelay03.hostedemail.com (Postfix) with ESMTP id BCE70A02F9
+	for <linux-mm@kvack.org>; Fri,  9 Sep 2022 07:38:25 +0000 (UTC)
+X-FDA: 79891744170.11.3524ED4
+Received: from out30-133.freemail.mail.aliyun.com
+ (out30-133.freemail.mail.aliyun.com [115.124.30.133])
+	by imf08.hostedemail.com (Postfix) with ESMTP id AE389160088
+	for <linux-mm@kvack.org>; Fri,  9 Sep 2022 07:38:22 +0000 (UTC)
+X-Alimail-AntiSpam: 
+ AC=PASS;BC=-1|-1;BR=01201311R551e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=ay29a033018046056;MF=xhao@linux.alibaba.com;NM=1;PH=DS;RN=3;SR=0;TI=SMTPD_---0VP8T26d_1662709098;
+Received: from localhost.localdomain(mailfrom:xhao@linux.alibaba.com
+ fp:SMTPD_---0VP8T26d_1662709098)
+          by smtp.aliyun-inc.com;
+          Fri, 09 Sep 2022 15:38:19 +0800
+From: Xin Hao <xhao@linux.alibaba.com>
+To: akpm@linux-foundation.org
+Cc: linux-mm@kvack.org,
+	linux-kernel@vger.kernel.org
+Subject: [RFC PATCH V1] mm: remove update_mmu_cache() when page is zero page
+Date: Fri,  9 Sep 2022 15:38:15 +0800
+Message-Id: <20220909073815.90046-1-xhao@linux.alibaba.com>
+X-Mailer: git-send-email 2.31.0
+MIME-Version: 1.0
+ARC-Seal: i=1; s=arc-20220608; d=hostedemail.com; t=1662709105; a=rsa-sha256;
+	cv=none;
+	b=mLqU6qBQaJz3OiZit+WoYQV2FYGhF2NeI7nPyZtMIK4eUpksdswUWczoQTiGnthSN4Xk/Z
+	jhzHFUOM0FNnTrEHXsVCY4SuRe/Hlnj+ZO73M0mAKtHnodummi4S3fPEBZKARIhMOFCxB0
+	Z4T3OwyaXAdOpE3TkQdORGVT5JoxjRM=
+ARC-Authentication-Results: i=1;
+	imf08.hostedemail.com;
+	dkim=none;
+	dmarc=pass (policy=none) header.from=alibaba.com;
+	spf=pass (imf08.hostedemail.com: domain of xhao@linux.alibaba.com designates
+ 115.124.30.133 as permitted sender) smtp.mailfrom=xhao@linux.alibaba.com
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=hostedemail.com;
+	s=arc-20220608; t=1662709105;
+	h=from:from:sender:reply-to:subject:subject:date:date:
+	 message-id:message-id:to:to:cc:cc:mime-version:mime-version:
+	 content-type:content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:references; bh=eRANFIbEIAszaHJt+3menNhgFRtP/aDChCTd4QwWD+U=;
+	b=MwZ6D2bKTyMOKVqMfqPQLZhXm7l9WqNNxtX5oJnnryRJFzZJOYxNqCcW5UBuRxcPY6ucIY
+	RwOH/Aym3rTVOk/jFQgW0BGvHl60MYm+ry38+CVLtXjaxR+C7UQDyMi3XcYdZuBR1DTC/Z
+	kBDGl8TUfyukII9ReySnGK5HyID0ZXE=
+X-Rspam-User: 
+X-Rspamd-Server: rspam05
+Authentication-Results: imf08.hostedemail.com;
+	dkim=none;
+	dmarc=pass (policy=none) header.from=alibaba.com;
+	spf=pass (imf08.hostedemail.com: domain of xhao@linux.alibaba.com designates
+ 115.124.30.133 as permitted sender) smtp.mailfrom=xhao@linux.alibaba.com
+X-Stat-Signature: 8f5wns4ncqodzozcy8thjtrt5wkwxhrj
+X-Rspamd-Queue-Id: AE389160088
+X-HE-Tag: 1662709102-122444
+X-Bogosity: Ham, tests=bogofilter, spamicity=0.000000, version=1.2.4
+Sender: owner-linux-mm@kvack.org
+Precedence: bulk
+X-Loop: owner-majordomo@kvack.org
+List-ID: <linux-mm.kvack.org>
+
+The zero page is never written to, so it will never has any dirty cache
+lines, and therefore there no need to be flushed.
+
+Signed-off-by: Xin Hao <xhao@linux.alibaba.com>
+---
+ mm/huge_memory.c | 1 -
+ mm/memory.c      | 5 ++++-
+ 2 files changed, 4 insertions(+), 2 deletions(-)
+
+--
+2.31.0
+
+diff --git a/mm/huge_memory.c b/mm/huge_memory.c
+index 8a7c1b344abe..679eb425e54f 100644
+--- a/mm/huge_memory.c
++++ b/mm/huge_memory.c
+@@ -821,7 +821,6 @@ vm_fault_t do_huge_pmd_anonymous_page(struct vm_fault *vmf)
+ 			} else {
+ 				set_huge_zero_page(pgtable, vma->vm_mm, vma,
+ 						   haddr, vmf->pmd, zero_page);
+-				update_mmu_cache_pmd(vma, vmf->address, vmf->pmd);
+ 				spin_unlock(vmf->ptl);
+ 			}
+ 		} else {
+diff --git a/mm/memory.c b/mm/memory.c
+index 4ba73f5aa8bb..3650e7cae26f 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -4034,6 +4034,7 @@ static vm_fault_t do_anonymous_page(struct vm_fault *vmf)
+ 	struct page *page;
+ 	vm_fault_t ret = 0;
+ 	pte_t entry;
++	bool is_zero_page = false;
+
+ 	/* File mapping without ->vm_ops ? */
+ 	if (vma->vm_flags & VM_SHARED)
+@@ -4075,6 +4076,7 @@ static vm_fault_t do_anonymous_page(struct vm_fault *vmf)
+ 			pte_unmap_unlock(vmf->pte, vmf->ptl);
+ 			return handle_userfault(vmf, VM_UFFD_MISSING);
+ 		}
++		is_zero_page = true;
+ 		goto setpte;
+ 	}
+
+@@ -4126,7 +4128,8 @@ static vm_fault_t do_anonymous_page(struct vm_fault *vmf)
+ 	set_pte_at(vma->vm_mm, vmf->address, vmf->pte, entry);
+
+ 	/* No need to invalidate - it was non-present before */
+-	update_mmu_cache(vma, vmf->address, vmf->pte);
++	if (!is_zero_page)
++		update_mmu_cache(vma, vmf->address, vmf->pte);
+ unlock:
+ 	pte_unmap_unlock(vmf->pte, vmf->ptl);
+ 	return ret;

@@ -1,0 +1,170 @@
+From patchwork Tue Sep  6 19:06:02 2022
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Brian Foster <bfoster@redhat.com>
+X-Patchwork-Id: 12968027
+Return-Path: <owner-linux-mm@kvack.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from kanga.kvack.org (kanga.kvack.org [205.233.56.17])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 273C9ECAAA1
+	for <linux-mm@archiver.kernel.org>; Tue,  6 Sep 2022 19:06:07 +0000 (UTC)
+Received: by kanga.kvack.org (Postfix)
+	id 3AFCD8D0001; Tue,  6 Sep 2022 15:06:07 -0400 (EDT)
+Received: by kanga.kvack.org (Postfix, from userid 40)
+	id 35EBE6B0073; Tue,  6 Sep 2022 15:06:07 -0400 (EDT)
+X-Delivered-To: int-list-linux-mm@kvack.org
+Received: by kanga.kvack.org (Postfix, from userid 63042)
+	id 226458D0001; Tue,  6 Sep 2022 15:06:07 -0400 (EDT)
+X-Delivered-To: linux-mm@kvack.org
+Received: from relay.hostedemail.com (smtprelay0015.hostedemail.com
+ [216.40.44.15])
+	by kanga.kvack.org (Postfix) with ESMTP id 0FA8F6B0072
+	for <linux-mm@kvack.org>; Tue,  6 Sep 2022 15:06:07 -0400 (EDT)
+Received: from smtpin09.hostedemail.com (a10.router.float.18 [10.200.18.1])
+	by unirelay08.hostedemail.com (Postfix) with ESMTP id C7DD61408E4
+	for <linux-mm@kvack.org>; Tue,  6 Sep 2022 19:06:06 +0000 (UTC)
+X-FDA: 79882590732.09.C4D4B43
+Received: from us-smtp-delivery-124.mimecast.com
+ (us-smtp-delivery-124.mimecast.com [170.10.133.124])
+	by imf25.hostedemail.com (Postfix) with ESMTP id 22702A008D
+	for <linux-mm@kvack.org>; Tue,  6 Sep 2022 19:06:05 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+	s=mimecast20190719; t=1662491165;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding;
+	bh=vgeHBgwVMehBSva8qtgS19uBSUzMk5oQk1il1ohQ4G0=;
+	b=gPYGDgO2DbU7N6zQPL/91CPNdK5ChIZzeAYM+YyhQDxm3y5w/loOnKHVx3RYQm9YKQqaOc
+	0kKDTb1iVqMyp9BUPr/QW3A64vsOplRHttIjrmK3R+1dvgjNi7E82zzEayyj9FjhFOC/LO
+	RMc8YHnf7Vss1Fy/1sFDqLNX0ojPz2Y=
+Received: from mimecast-mx02.redhat.com (mimecast-mx02.redhat.com
+ [66.187.233.88]) by relay.mimecast.com with ESMTP with STARTTLS
+ (version=TLSv1.2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
+ us-mta-252-KkdifZugMDWEEdm-NJoHIQ-1; Tue, 06 Sep 2022 15:06:04 -0400
+X-MC-Unique: KkdifZugMDWEEdm-NJoHIQ-1
+Received: from smtp.corp.redhat.com (int-mx10.intmail.prod.int.rdu2.redhat.com
+ [10.11.54.10])
+	(using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
+	(No client certificate requested)
+	by mimecast-mx02.redhat.com (Postfix) with ESMTPS id DDE92101E9B2;
+	Tue,  6 Sep 2022 19:06:03 +0000 (UTC)
+Received: from bfoster.redhat.com (unknown [10.22.32.109])
+	by smtp.corp.redhat.com (Postfix) with ESMTP id BB418403162;
+	Tue,  6 Sep 2022 19:06:03 +0000 (UTC)
+From: Brian Foster <bfoster@redhat.com>
+To: linux-mm@kvack.org
+Cc: Matthew Wilcox <willy@infradead.org>
+Subject: [PATCH] mm/huge_memory: don't clear active swapcache entry from
+ page->private
+Date: Tue,  6 Sep 2022 15:06:02 -0400
+Message-Id: <20220906190602.1626037-1-bfoster@redhat.com>
+MIME-Version: 1.0
+X-Scanned-By: MIMEDefang 2.85 on 10.11.54.10
+X-Mimecast-Spam-Score: 0
+X-Mimecast-Originator: redhat.com
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=hostedemail.com;
+	s=arc-20220608; t=1662491166;
+	h=from:from:sender:reply-to:subject:subject:date:date:
+	 message-id:message-id:to:to:cc:cc:mime-version:mime-version:
+	 content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:in-reply-to:
+	 references:dkim-signature; bh=vgeHBgwVMehBSva8qtgS19uBSUzMk5oQk1il1ohQ4G0=;
+	b=S7uVP56xgGFtsIV5G2m02qTyWH5u0jCptmbIm9o1o7On7aRosyMVLHIfjEtkBrRONvXdj7
+	FuWhv8N5DBMVIb5d3ZgmJKGf/KfJv1k8mFBhey7pBSI1dqFwjwtUAqDw2CDViPY7d9jsRx
+	sBz1+c1ccn4/6VyjQFu+RdaxEkBiFUU=
+ARC-Authentication-Results: i=1;
+	imf25.hostedemail.com;
+	dkim=pass header.d=redhat.com header.s=mimecast20190719 header.b=gPYGDgO2;
+	spf=pass (imf25.hostedemail.com: domain of bfoster@redhat.com designates
+ 170.10.133.124 as permitted sender) smtp.mailfrom=bfoster@redhat.com;
+	dmarc=pass (policy=none) header.from=redhat.com
+ARC-Seal: i=1; s=arc-20220608; d=hostedemail.com; t=1662491166; a=rsa-sha256;
+	cv=none;
+	b=7ZXpJ0DQvdXG7Uc74m1b3QEhYdORyg7IwepenMMrQYFSzRjJfALoXDhX1C9LTtkt9dbkTS
+	WH2aFx92zAZGioUAzNqGvMUj8cYsKtthDxMJGVJxA7S3OD4seEP4PTkv2yp+hg7iAM5PhJ
+	SeI/piwynm5JdQFrh2LmIa/DtA+gtlA=
+X-Stat-Signature: 7qt9jmotzmui37u9zonpgapo98chn1tf
+X-Rspamd-Queue-Id: 22702A008D
+X-Rspam-User: 
+Authentication-Results: imf25.hostedemail.com;
+	dkim=pass header.d=redhat.com header.s=mimecast20190719 header.b=gPYGDgO2;
+	spf=pass (imf25.hostedemail.com: domain of bfoster@redhat.com designates
+ 170.10.133.124 as permitted sender) smtp.mailfrom=bfoster@redhat.com;
+	dmarc=pass (policy=none) header.from=redhat.com
+X-Rspamd-Server: rspam03
+X-HE-Tag: 1662491165-977790
+X-Bogosity: Ham, tests=bogofilter, spamicity=0.000000, version=1.2.4
+Sender: owner-linux-mm@kvack.org
+Precedence: bulk
+X-Loop: owner-majordomo@kvack.org
+List-ID: <linux-mm.kvack.org>
+
+If a swap cache resident hugepage is passed into
+__split_huge_page(), the tail pages are incrementally split off and
+each offset in the swap cache covered by the hugepage is updated to
+point to the associated subpage instead of the original head page.
+As a final step, each subpage is individually passed to
+free_page_and_swap_cache() to free the associated swap cache entry
+and release the page. This eventually lands in
+delete_from_swap_cache(), which refers to page->private for the
+swp_entry_t, which in turn encodes the swap address space and page
+offset information.
+
+The problem here is that the earlier call to
+__split_huge_page_tail() clears page->private of each tail page in
+the hugepage. This means that the swap entry passed to
+__delete_from_swap_cache() is zeroed, resulting in a bogus address
+space and offset tuple for the swapcache update. If DEBUG_VM is
+enabled, this results in a BUG() in the latter function upon
+detection of the old value in the swap address space not matching
+the page being removed.
+
+The ramifications are less clear if DEBUG_VM is not enabled. In the
+particular stress-ng workload that reproduces this problem, this
+reliably occurs via MADV_PAGEOUT, which eventually triggers swap
+cache reclaim before the madvise() call returns. The swap cache
+reclaim sequence attempts to reuse the entry that should have been
+freed by the delete operation, but since that failed to correctly
+update the swap address space, swap cache reclaim attempts to look
+up the already freed page still stored at said offset and falls into
+a tight loop in find_get_page() -> __filemap_get_folio() due to
+repetitive folio_try_get_rcu() (reference count update) failures.
+This leads to a soft lockup BUG and never seems to recover.
+
+To avoid this problem, update __split_huge_page_tail() to not clear
+page->private when the associated page has the swap cache flag set.
+Note that this flag is transferred to the tail page by the preceding
+->flags update.
+
+Fixes: b653db77350c7 ("mm: Clear page->private when splitting or migrating a page")
+Signed-off-by: Brian Foster <bfoster@redhat.com>
+---
+
+Original bug report is here [1]. I figure there's probably at least a
+couple different ways to fix this problem, but I started with what
+seemed most straightforward. Thoughts appreciated..
+
+Brian
+
+[1] https://lore.kernel.org/linux-mm/YxDyZLfBdFHK1Y1P@bfoster/
+
+ mm/huge_memory.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/mm/huge_memory.c b/mm/huge_memory.c
+index e9414ee57c5b..c2ddbb81a743 100644
+--- a/mm/huge_memory.c
++++ b/mm/huge_memory.c
+@@ -2445,7 +2445,8 @@ static void __split_huge_page_tail(struct page *head, int tail,
+ 			page_tail);
+ 	page_tail->mapping = head->mapping;
+ 	page_tail->index = head->index + tail;
+-	page_tail->private = 0;
++	if (!PageSwapCache(page_tail))
++		page_tail->private = 0;
+ 
+ 	/* Page flags must be visible before we make the page non-compound. */
+ 	smp_wmb();

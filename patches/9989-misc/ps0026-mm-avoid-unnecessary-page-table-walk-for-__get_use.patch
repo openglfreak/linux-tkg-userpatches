@@ -1,0 +1,119 @@
+From patchwork Tue Sep  6 02:44:01 2022
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Chen Wandun <chenwandun@huawei.com>
+X-Patchwork-Id: 12966754
+Return-Path: <owner-linux-mm@kvack.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from kanga.kvack.org (kanga.kvack.org [205.233.56.17])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 3972DECAAA1
+	for <linux-mm@archiver.kernel.org>; Tue,  6 Sep 2022 02:44:53 +0000 (UTC)
+Received: by kanga.kvack.org (Postfix)
+	id 96E9C80247; Mon,  5 Sep 2022 22:44:52 -0400 (EDT)
+Received: by kanga.kvack.org (Postfix, from userid 40)
+	id 91D2E80224; Mon,  5 Sep 2022 22:44:52 -0400 (EDT)
+X-Delivered-To: int-list-linux-mm@kvack.org
+Received: by kanga.kvack.org (Postfix, from userid 63042)
+	id 7E4D180247; Mon,  5 Sep 2022 22:44:52 -0400 (EDT)
+X-Delivered-To: linux-mm@kvack.org
+Received: from relay.hostedemail.com (smtprelay0013.hostedemail.com
+ [216.40.44.13])
+	by kanga.kvack.org (Postfix) with ESMTP id 6C60580224
+	for <linux-mm@kvack.org>; Mon,  5 Sep 2022 22:44:52 -0400 (EDT)
+Received: from smtpin03.hostedemail.com (a10.router.float.18 [10.200.18.1])
+	by unirelay02.hostedemail.com (Postfix) with ESMTP id 435CE120F13
+	for <linux-mm@kvack.org>; Tue,  6 Sep 2022 02:44:52 +0000 (UTC)
+X-FDA: 79880118024.03.A93D7E2
+Received: from szxga02-in.huawei.com (szxga02-in.huawei.com [45.249.212.188])
+	by imf18.hostedemail.com (Postfix) with ESMTP id 9D69F1C0060
+	for <linux-mm@kvack.org>; Tue,  6 Sep 2022 02:44:49 +0000 (UTC)
+Received: from dggpemm500023.china.huawei.com (unknown [172.30.72.56])
+	by szxga02-in.huawei.com (SkyGuard) with ESMTP id 4MM8kS72WNzZcNm;
+	Tue,  6 Sep 2022 10:40:16 +0800 (CST)
+Received: from dggpemm500002.china.huawei.com (7.185.36.229) by
+ dggpemm500023.china.huawei.com (7.185.36.83) with Microsoft SMTP Server
+ (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
+ 15.1.2375.24; Tue, 6 Sep 2022 10:44:45 +0800
+Received: from localhost.localdomain (10.175.112.125) by
+ dggpemm500002.china.huawei.com (7.185.36.229) with Microsoft SMTP Server
+ (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
+ 15.1.2375.24; Tue, 6 Sep 2022 10:44:45 +0800
+From: Chen Wandun <chenwandun@huawei.com>
+To: <akpm@linux-foundation.org>, <linux-mm@kvack.org>,
+	<linux-kernel@vger.kernel.org>
+CC: <wangkefeng.wang@huawei.com>, <chenwandun@huawei.com>
+Subject: [PATCH] mm: avoid unnecessary page table walk for __get_user_pages
+Date: Tue, 6 Sep 2022 10:44:01 +0800
+Message-ID: <20220906024401.133336-1-chenwandun@huawei.com>
+X-Mailer: git-send-email 2.25.1
+MIME-Version: 1.0
+X-Originating-IP: [10.175.112.125]
+X-ClientProxiedBy: dggems704-chm.china.huawei.com (10.3.19.181) To
+ dggpemm500002.china.huawei.com (7.185.36.229)
+X-CFilter-Loop: Reflected
+ARC-Seal: i=1; s=arc-20220608; d=hostedemail.com; t=1662432290; a=rsa-sha256;
+	cv=none;
+	b=amfrDYBT7m0dmS86zn0eHrUMtd5vtonG6SpYtY9YtTnYVwIC0CF3V4R9UUeDT563pBTYPz
+	0oZCTqvqZwKGwux6aLlRhVUzQtDpHDCtSzvEiAXnzEqEuEft8dwUnee3Ppln2QbHn/t4jj
+	2B9/h5w52M/NW9hy3tcMoIXHqtirmZ0=
+ARC-Authentication-Results: i=1;
+	imf18.hostedemail.com;
+	dkim=none;
+	dmarc=pass (policy=quarantine) header.from=huawei.com;
+	spf=pass (imf18.hostedemail.com: domain of chenwandun@huawei.com designates
+ 45.249.212.188 as permitted sender) smtp.mailfrom=chenwandun@huawei.com
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=hostedemail.com;
+	s=arc-20220608; t=1662432290;
+	h=from:from:sender:reply-to:subject:subject:date:date:
+	 message-id:message-id:to:to:cc:cc:mime-version:mime-version:
+	 content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:in-reply-to:
+	 references; bh=Z1K/f8bTItkw65oje4uzhu61y5IJoo/nHfxPMPQN/bc=;
+	b=fXFw4WKBgLCqMkl/lS8TSdWR3Bc5uAxtB89XeDa4v5gEBkH8n7tCT9fHLje1Uxz2DKyZ1E
+	84mezokalCtoscpi9Jrb5n40AXCIUHQJACIMNO5Iz+2N90pUPks2YBghtsegSAE2/1gDJT
+	y1HtxieoX/eGZeHAmicQgO6r2eK1pPU=
+X-Rspamd-Queue-Id: 9D69F1C0060
+X-Rspam-User: 
+Authentication-Results: imf18.hostedemail.com;
+	dkim=none;
+	dmarc=pass (policy=quarantine) header.from=huawei.com;
+	spf=pass (imf18.hostedemail.com: domain of chenwandun@huawei.com designates
+ 45.249.212.188 as permitted sender) smtp.mailfrom=chenwandun@huawei.com
+X-Rspamd-Server: rspam10
+X-Stat-Signature: b65jhra3qh8mu4wbso15y8oajoxdknzi
+X-HE-Tag: 1662432289-103296
+X-Bogosity: Ham, tests=bogofilter, spamicity=0.000000, version=1.2.4
+Sender: owner-linux-mm@kvack.org
+Precedence: bulk
+X-Loop: owner-majordomo@kvack.org
+List-ID: <linux-mm.kvack.org>
+
+It is no need to walk page table and find pages if faultin_page success
+and __get_user_pages does't care pages at all, so directly handle next
+page.
+
+Signed-off-by: Chen Wandun <chenwandun@huawei.com>
+Reviewed-by: John Hubbard <jhubbard@nvidia.com>
+---
+ mm/gup.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/mm/gup.c b/mm/gup.c
+index 983e24fd4b70..c8de33cc37af 100644
+--- a/mm/gup.c
++++ b/mm/gup.c
+@@ -1198,7 +1198,10 @@ static long __get_user_pages(struct mm_struct *mm,
+ 					   PTR_ERR(page) == -EMLINK, locked);
+ 			switch (ret) {
+ 			case 0:
+-				goto retry;
++				if (pages)
++					goto retry;
++				else
++					goto next_page;
+ 			case -EBUSY:
+ 			case -EAGAIN:
+ 				ret = 0;
